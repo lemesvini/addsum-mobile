@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 1a437e2bda3fb3648146030719b190bfdec20036..dbae7ffbd24daa1199dd1fc826b8260db290629a 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "react-native-toastify-expo",
+-  "main": "expo-router/entry",
++  "main": "lib/index.js",
+   "version": "1.1.1",
+   "description": "Customizable toast notifications for React Native using Expo",
+   "types": "lib/index.d.ts",

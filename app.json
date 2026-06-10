@@ -1,0 +1,96 @@
+{
+  "expo": {
+    "name": "Genesis",
+    "slug": "genesis-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/epicora.png",
+    "scheme": "genesismobile",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/epicora.png",
+      "bundleIdentifier": "com.pedrohhcunha.genesis-mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Permita que o Genesis acesse suas fotos para definir avatares de usuário."
+      },
+      "appleTeamId": "8AS9P94UUK"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/epicora.png",
+        "backgroundColor": "#6600FF"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.pedrohhcunha.genesismobile",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+      ]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/epicora-full.png",
+          "imageWidth": 280,
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o Genesis acesse suas fotos para definir avatares de usuário e anexar comprovantes de despesas.",
+          "cameraPermission": "Permita que o Genesis use a câmera para fotografar comprovantes de despesas.",
+          "microphonePermission": false
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.pedrohhcunha.genesis-mobile",
+          "widgets": [
+            {
+              "name": "UsersCountWidget",
+              "displayName": "Usuários Genesis",
+              "description": "Total de usuários cadastrados",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium"
+              ]
+            },
+            {
+              "name": "MoviesCountWidget",
+              "displayName": "Filmes Genesis",
+              "description": "Total de filmes cadastrados",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium"
+              ]
+            }
+          ]
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c1166964-7865-4574-94be-000b8dda7065"
+      }
+    }
+  }
+}
