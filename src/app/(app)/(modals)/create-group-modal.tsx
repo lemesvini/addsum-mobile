@@ -73,7 +73,11 @@ export default function CreateGroupModal() {
         {error ? (
           <Text className="text-destructive mb-2 text-sm">{error}</Text>
         ) : null}
-        <Pressable disabled={busy} onPress={onCreate}>
+        <Pressable
+          disabled={busy}
+          onPress={onCreate}
+          className="bg-primary py-3 rounded-lg items-center rounded-full"
+        >
           <Text className="text-primary-foreground font-semibold">
             {busy ? "Criando..." : "Criar grupo"}
           </Text>

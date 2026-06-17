@@ -98,7 +98,7 @@ export default function HomeScreen() {
             Oi, {user?.fullName.split(" ")[0] ?? "Usuário"}
           </Text>
           <Pressable
-            className="h-11 px-3 items-center justify-center overflow-hidden rounded-full bg-muted"
+            className="items-center justify-center overflow-hidden rounded-full bg-muted"
             onPress={() => {
               Haptics.selectionAsync();
               router.push("(modals)/profile-modal" as Href);
@@ -117,8 +117,8 @@ export default function HomeScreen() {
         </View>
 
         <View className="mb-4 flex-row gap-4">
-          <Card className="bg-transparent aspect-square flex-1 rounded-3xl">
-            <View className="flex-1 justify-between px-5">
+          <Card className="bg-transparent rounded-3xl">
+            <View className="justify-between px-5">
               <Text className="text-muted-foreground text-sm">
                 Devem a você
               </Text>
@@ -127,8 +127,8 @@ export default function HomeScreen() {
               </Text>
             </View>
           </Card>
-          <Card className="bg-transparent aspect-square flex-1 rounded-3xl">
-            <View className="flex-1 justify-between px-5">
+          <Card className="bg-transparent rounded-3xl">
+            <View className="justify-between px-5">
               <Text className="text-muted-foreground text-sm">Você deve</Text>
               <Text className="text-white text-2xl font-extrabold">
                 {formatBRL(totalIOwe)}
