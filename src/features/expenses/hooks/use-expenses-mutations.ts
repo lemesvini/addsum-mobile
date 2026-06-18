@@ -1,11 +1,16 @@
-import NetInfo from "@react-native-community/netinfo";
 import { useCallback } from "react";
-import { useDatabase } from "@/db/use-db";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthUser } from "@/features/auth/auth-store";
-import { generateObjectIdHex } from "@/common/utils/id";
-import { enqueue } from "@/sync/outbox";
-import { triggerCollectionSync } from "@/sync/network-monitor";
-import type { ExpenseDoc } from "@/db/schemas/expense.schema";
+import {
+  createExpense as apiCreateExpense,
+  declarePayment as apiDeclarePayment,
+  confirmPayment as apiConfirmPayment,
+  rejectPayment as apiRejectPayment,
+  type Expense,
+} from "../api/expenses-api";
+import type { ExpenseParticipantStatus } from "@/common/types/enums";
+import { uploadLocalReceiptImageUrl } from "@/common/api/media-upload";
+import { queryKeys } from "@/common/lib/query-keys";
 
 type CreateExpenseInput = {
   groupId: string;
@@ -20,11 +25,16 @@ type CreateExpenseInput = {
    */
   participantAmounts?: Record<string, number>;
   date?: string;
-  /** Local `file://` URI of a receipt image; uploaded to S3 at sync time. */
+  /** Local `file://` URI of a receipt image; uploaded to S3 before POST. */
   receiptImageUrl?: string;
 };
 
-/** Rounds to 2 decimals. */
+type PaymentArgs = {
+  groupId: string;
+  expenseId: string;
+  participantId: string;
+};
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
@@ -42,53 +52,12 @@ function evenSplit(total: number, count: number): number[] {
   return shares;
 }
 
-async function syncOnlineIfPossible(fn: () => Promise<unknown>) {
-  const net = await NetInfo.fetch();
-  if (net.isConnected && net.isInternetReachable !== false) {
-    try {
-      await fn();
-    } catch (e) {
-      console.error("[sync] expenseParticipants sync after mutation failed", e);
-    }
-  }
-}
-
 export function useExpensesMutations() {
-  const { db } = useDatabase();
+  const qc = useQueryClient();
   const authUser = useAuthUser();
 
-  const createExpense = useCallback(
-    async (input: CreateExpenseInput): Promise<string> => {
-      if (!db) throw new Error("Database not ready");
-      if (!authUser) throw new Error("Not authenticated");
-      if (input.participantUserIds.length === 0) {
-        throw new Error("Selecione ao menos um participante");
-      }
-
-      const now = new Date().toISOString();
-      const expenseId = generateObjectIdHex();
-      const expense: ExpenseDoc = {
-        _id: expenseId,
-        groupId: input.groupId,
-        createdByUserId: authUser._id,
-        categoryId: input.categoryId,
-        description: input.description,
-        totalAmount: input.totalAmount,
-        date: input.date ?? now,
-        ...(input.receiptImageUrl
-          ? { receiptImageUrl: input.receiptImageUrl }
-          : {}),
-        createdAt: now,
-        updatedAt: now,
-      };
-      await (db.expenses as any).insert(expense);
-      await enqueue(db, {
-        collectionName: "expenses",
-        docId: expenseId,
-        operation: "create",
-        payload: expense as unknown as Record<string, unknown>,
-      });
-
+  const createMutation = useMutation({
+    mutationFn: async (input: CreateExpenseInput) => {
       const shares = input.participantAmounts
         ? input.participantUserIds.map((uid) =>
             round2(input.participantAmounts![uid] ?? 0),
@@ -100,101 +69,95 @@ export function useExpensesMutations() {
         throw new Error("A soma das partes não confere com o total");
       }
 
-      for (let i = 0; i < input.participantUserIds.length; i++) {
-        const userId = input.participantUserIds[i];
-        const participantId = generateObjectIdHex();
-        // The creator's own share is auto-confirmed; others start pending.
-        const isCreator = userId === authUser._id;
-        const participant = {
-          _id: participantId,
-          expenseId,
+      const receiptImageUrl = input.receiptImageUrl
+        ? await uploadLocalReceiptImageUrl(input.receiptImageUrl)
+        : undefined;
+
+      return apiCreateExpense(input.groupId, {
+        categoryId: input.categoryId,
+        description: input.description,
+        totalAmount: input.totalAmount,
+        date: input.date ?? new Date().toISOString(),
+        ...(receiptImageUrl ? { receiptImageUrl } : {}),
+        participants: input.participantUserIds.map((userId, i) => ({
           userId,
           amountOwed: shares[i],
-          status: isCreator ? "CONFIRMED" : "PENDING",
-          ...(isCreator ? { confirmedAt: now } : {}),
-          createdAt: now,
-          updatedAt: now,
-        };
-        await (db.expenseParticipants as any).insert(participant);
-        await enqueue(db, {
-          collectionName: "expenseParticipants",
-          docId: participantId,
-          operation: "create",
-          payload: participant,
-        });
-      }
+        })),
+      });
+    },
+    onSuccess: (_expense, input) => {
+      qc.invalidateQueries({
+        queryKey: queryKeys.groups.expenses(input.groupId),
+      });
+    },
+  });
 
-      const net = await NetInfo.fetch();
-      if (net.isConnected && net.isInternetReachable !== false) {
-        try {
-          await triggerCollectionSync(db, "expenses");
-          await triggerCollectionSync(db, "expenseParticipants");
-        } catch (e) {
-          console.error("[sync] expense sync after create failed", e);
+  const createExpense = useCallback(
+    async (input: CreateExpenseInput): Promise<string> => {
+      if (!authUser) throw new Error("Not authenticated");
+      if (input.participantUserIds.length === 0) {
+        throw new Error("Selecione ao menos um participante");
+      }
+      const expense = await createMutation.mutateAsync(input);
+      return expense._id;
+    },
+    [createMutation, authUser],
+  );
+
+  // Optimistic payment-status mutation factory. Called unconditionally three
+  // times below to respect the Rules of Hooks.
+  const usePaymentAction = (
+    apiCall: (groupId: string, participantId: string) => Promise<void>,
+    nextStatus: ExpenseParticipantStatus,
+  ) =>
+    useMutation({
+      mutationFn: ({ groupId, participantId }: PaymentArgs) =>
+        apiCall(groupId, participantId),
+      onMutate: async ({ groupId, expenseId, participantId }: PaymentArgs) => {
+        const key = queryKeys.groups.expense(groupId, expenseId);
+        await qc.cancelQueries({ queryKey: key });
+        const prev = qc.getQueryData<Expense>(key);
+        if (prev) {
+          qc.setQueryData<Expense>(key, {
+            ...prev,
+            participants: prev.participants.map((p) =>
+              p._id === participantId ? { ...p, status: nextStatus } : p,
+            ),
+          });
         }
-      }
+        return { prev, key };
+      },
+      onError: (_err, _vars, ctx) => {
+        if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev);
+      },
+      onSettled: (_data, _err, vars) => {
+        qc.invalidateQueries({
+          queryKey: queryKeys.groups.expense(vars.groupId, vars.expenseId),
+        });
+        qc.invalidateQueries({
+          queryKey: queryKeys.groups.expenses(vars.groupId),
+        });
+      },
+    });
 
-      return expenseId;
-    },
-    [db, authUser],
-  );
+  const declareMutation = usePaymentAction(apiDeclarePayment, "PAID");
+  const confirmMutation = usePaymentAction(apiConfirmPayment, "CONFIRMED");
+  const rejectMutation = usePaymentAction(apiRejectPayment, "REJECTED");
 
-  const patchParticipant = useCallback(
-    async (participantId: string, fields: Record<string, unknown>) => {
-      if (!db) throw new Error("Database not ready");
-
-      const doc = await (db.expenseParticipants as any)
-        .findOne({ selector: { _id: participantId } })
-        .exec();
-      if (!doc) throw new Error("Participante não encontrado");
-
-      const patch: Record<string, unknown> = {
-        updatedAt: new Date().toISOString(),
-        ...fields,
-      };
-      await doc.patch(patch);
-
-      await enqueue(db, {
-        collectionName: "expenseParticipants",
-        docId: participantId,
-        operation: "update",
-        payload: { _id: participantId, ...patch },
-      });
-
-      await syncOnlineIfPossible(async () => {
-        await triggerCollectionSync(db, "expenseParticipants");
-      });
-    },
-    [db],
-  );
-
-  /** A participant declares they paid their share. PENDING/REJECTED -> PAID. */
   const declarePayment = useCallback(
-    (participantId: string) =>
-      patchParticipant(participantId, {
-        status: "PAID",
-        paidAt: new Date().toISOString(),
-      }),
-    [patchParticipant],
+    (args: PaymentArgs) =>
+      declareMutation.mutateAsync(args).then(() => undefined),
+    [declareMutation],
   );
-
-  /** The expense creator confirms receipt. PAID -> CONFIRMED. */
   const confirmPayment = useCallback(
-    (participantId: string) =>
-      patchParticipant(participantId, {
-        status: "CONFIRMED",
-        confirmedAt: new Date().toISOString(),
-      }),
-    [patchParticipant],
+    (args: PaymentArgs) =>
+      confirmMutation.mutateAsync(args).then(() => undefined),
+    [confirmMutation],
   );
-
-  /** The expense creator rejects a declared payment. PAID -> REJECTED. */
   const rejectPayment = useCallback(
-    (participantId: string) =>
-      patchParticipant(participantId, {
-        status: "REJECTED",
-      }),
-    [patchParticipant],
+    (args: PaymentArgs) =>
+      rejectMutation.mutateAsync(args).then(() => undefined),
+    [rejectMutation],
   );
 
   return { createExpense, declarePayment, confirmPayment, rejectPayment };
