@@ -1,31 +1,26 @@
-import { useEffect, useState } from "react";
-import { useDatabase } from "@/db/use-db";
-import type { ExpenseDoc } from "@/db/schemas/expense.schema";
+import { useQuery, useQueries } from "@tanstack/react-query";
+import { listGroups } from "@/features/groups/api/groups-api";
+import { listExpenses } from "../api/expenses-api";
+import { queryKeys } from "@/common/lib/query-keys";
 
-/**
- * Reactive list of every non-deleted expense across all groups (newest first).
- * Used by global search, where results aren't scoped to a single group.
- */
+/** Every expense across all of the user's groups (newest first), for search. */
 export function useAllExpenses() {
-  const { db, isReady } = useDatabase();
-  const [expenses, setExpenses] = useState<ExpenseDoc[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const groupsQuery = useQuery({
+    queryKey: queryKeys.groups.all(),
+    queryFn: listGroups,
+  });
+  const groups = groupsQuery.data ?? [];
 
-  useEffect(() => {
-    if (!db || !isReady) return;
+  const expenseQueries = useQueries({
+    queries: groups.map((g) => ({
+      queryKey: queryKeys.groups.expenses(g._id),
+      queryFn: () => listExpenses(g._id),
+    })),
+  });
 
-    const subscription = (db.expenses as any)
-      .find({
-        selector: { deletedAt: { $exists: false } },
-        sort: [{ date: "desc" }],
-      })
-      .$.subscribe((docs: any[]) => {
-        setExpenses(docs.map((d) => d.toJSON() as ExpenseDoc));
-        setIsLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
-  }, [db, isReady]);
+  const expenses = expenseQueries.flatMap((q) => q.data ?? []);
+  const isLoading =
+    groupsQuery.isLoading || expenseQueries.some((q) => q.isLoading);
 
   return { expenses, isLoading };
 }

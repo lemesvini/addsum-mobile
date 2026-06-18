@@ -1,30 +1,18 @@
-import { useEffect, useState } from "react";
-import { useDatabase } from "@/db/use-db";
-import type { ExpenseDoc } from "@/db/schemas/expense.schema";
+import { useQuery } from "@tanstack/react-query";
+import { getExpense } from "../api/expenses-api";
+import { queryKeys } from "@/common/lib/query-keys";
 
-/** Reactive single non-deleted expense by _id. */
-export function useExpense(expenseId: string | undefined) {
-  const { db, isReady } = useDatabase();
-  const [expense, setExpense] = useState<ExpenseDoc | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!db || !isReady || !expenseId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const subscription = (db.expenses as any)
-      .findOne({
-        selector: { _id: expenseId, deletedAt: { $exists: false } },
-      })
-      .$.subscribe((doc: any) => {
-        setExpense(doc ? (doc.toJSON() as ExpenseDoc) : null);
-        setIsLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
-  }, [db, isReady, expenseId]);
-
-  return { expense, isLoading };
+export function useExpense(
+  groupId: string | undefined,
+  expenseId: string | undefined,
+) {
+  const query = useQuery({
+    queryKey:
+      groupId && expenseId
+        ? queryKeys.groups.expense(groupId, expenseId)
+        : ["groups", "expense", "none"],
+    queryFn: () => getExpense(groupId as string, expenseId as string),
+    enabled: !!groupId && !!expenseId,
+  });
+  return { expense: query.data ?? null, isLoading: query.isLoading };
 }
