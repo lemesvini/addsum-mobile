@@ -3,9 +3,8 @@ import { Text } from "@/components/ui/text";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { useCategories } from "@/features/categories/hooks/use-categories";
 import { useExpense } from "@/features/expenses/hooks/use-expense";
-import { useExpenseParticipants } from "@/features/expenses/hooks/use-expense-participants";
 import { useExpensesMutations } from "@/features/expenses/hooks/use-expenses-mutations";
-import { useUsers } from "@/features/users/hooks/use-users";
+import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
 import { useTheme } from "@/hooks/use-theme";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
@@ -21,7 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PieChart } from "react-native-gifted-charts";
-import type { ExpenseParticipantDoc } from "@/db/schemas/expense-participant.schema";
+import type { ExpenseParticipant } from "@/features/expenses/api/expenses-api";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -62,9 +61,9 @@ export default function ExpenseDetailScreen() {
   }>();
   const theme = useTheme();
   const authUser = useAuthUser();
-  const { expense, isLoading } = useExpense(expenseId);
-  const { participants } = useExpenseParticipants(expenseId);
-  const { users } = useUsers();
+  const { expense, isLoading } = useExpense(groupId, expenseId);
+  const participants = expense?.participants ?? [];
+  const { members } = useGroupMembers(groupId);
   const { categories } = useCategories(groupId);
   const { declarePayment, confirmPayment, rejectPayment } =
     useExpensesMutations();
@@ -75,9 +74,9 @@ export default function ExpenseDetailScreen() {
 
   const userName = useMemo(() => {
     const m = new Map<string, string>();
-    for (const u of users) m.set(u._id, u.fullName);
+    for (const u of members) m.set(u._id, u.fullName);
     return m;
-  }, [users]);
+  }, [members]);
 
   const categoryName = useMemo(
     () =>
@@ -268,9 +267,21 @@ export default function ExpenseDetailScreen() {
                   isOwnRow={isOwnRow}
                   isCreator={isCreator}
                   busy={busy}
-                  onDeclare={() => run(p._id, () => declarePayment(p._id))}
-                  onConfirm={() => run(p._id, () => confirmPayment(p._id))}
-                  onReject={() => run(p._id, () => rejectPayment(p._id))}
+                  onDeclare={() =>
+                    run(p._id, () =>
+                      declarePayment({ groupId, expenseId, participantId: p._id }),
+                    )
+                  }
+                  onConfirm={() =>
+                    run(p._id, () =>
+                      confirmPayment({ groupId, expenseId, participantId: p._id }),
+                    )
+                  }
+                  onReject={() =>
+                    run(p._id, () =>
+                      rejectPayment({ groupId, expenseId, participantId: p._id }),
+                    )
+                  }
                 />
               </View>
             </Card>
@@ -360,7 +371,7 @@ function ParticipantActions({
   onConfirm,
   onReject,
 }: {
-  participant: ExpenseParticipantDoc;
+  participant: ExpenseParticipant;
   isOwnRow: boolean;
   isCreator: boolean;
   busy: boolean;
