@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
+import { useGroupsMutations } from "@/features/groups/hooks/use-groups-mutations";
 import { useCategories } from "@/features/categories/hooks/use-categories";
 import { categoryColor } from "@/features/categories/constants";
 import { useExpenses } from "@/features/expenses/hooks/use-expenses";
@@ -16,10 +17,17 @@ import {
   Pencil,
   Plus,
   QrCode,
+  Trash2,
   Users,
 } from "lucide-react-native";
 import { useMemo } from "react";
-import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import Animated, {
   Extrapolation,
@@ -81,11 +89,37 @@ export default function GroupDetailScreen() {
     [expenses],
   );
   const { categories } = useCategories(id);
+  const { deleteGroup } = useGroupsMutations();
   const authUser = useAuthUser();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
 
   const isAdmin = !!group && !!authUser && group.adminUserId === authUser._id;
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Excluir grupo",
+      "Tem certeza que deseja excluir este grupo? Esta ação não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteGroup(id);
+              router.back();
+            } catch (e: any) {
+              Alert.alert(
+                "Erro",
+                e?.message ?? "Não foi possível excluir o grupo.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const headerHeight = insets.top + 52;
 
@@ -367,16 +401,26 @@ export default function GroupDetailScreen() {
         <BackButton />
         <View className="flex-row items-center gap-3">
           {isAdmin ? (
-            <TouchableOpacity
-              onPress={() =>
-                router.push(`(modals)/edit-group-modal?id=${id}` as Href)
-              }
-              hitSlop={8}
-              className="h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-            >
-              <Pencil size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`(modals)/edit-group-modal?id=${id}` as Href)
+                }
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+              >
+                <Pencil size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDelete}
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+              >
+                <Trash2 size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </>
           ) : null}
           <TouchableOpacity
             onPress={() =>
