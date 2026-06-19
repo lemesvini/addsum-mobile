@@ -400,6 +400,16 @@ export default function GroupDetailScreen() {
       >
         <BackButton />
         <View className="flex-row items-center gap-3">
+          {/* <TouchableOpacity
+            onPress={() =>
+              router.push(`(modals)/share-group-modal?id=${id}` as Href)
+            }
+            hitSlop={8}
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+          >
+            <QrCode size={20} color="#FFFFFF" />
+          </TouchableOpacity> */}
           {isAdmin ? (
             <>
               <TouchableOpacity
@@ -422,16 +432,6 @@ export default function GroupDetailScreen() {
               </TouchableOpacity>
             </>
           ) : null}
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`(modals)/share-group-modal?id=${id}` as Href)
-            }
-            hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-          >
-            <QrCode size={20} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
       </View>
 

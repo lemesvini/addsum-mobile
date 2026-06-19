@@ -98,7 +98,7 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <View className="mb-4 flex-row gap-4">
+        {/* <View className="mb-4 flex-row gap-4">
           <Card className="bg-transparent rounded-3xl">
             <View className="justify-between px-5">
               <Text className="text-muted-foreground text-sm">
@@ -117,7 +117,7 @@ export default function HomeScreen() {
               </Text>
             </View>
           </Card>
-        </View>
+        </View> */}
 
         <Card className="bg-transparent mb-6 py-6 px-6 rounded-3xl flex-row items-center justify-between">
           <Wallet
