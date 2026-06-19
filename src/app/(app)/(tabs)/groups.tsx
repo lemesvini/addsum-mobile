@@ -3,10 +3,12 @@ import { useTabScreenTopPadding } from "@/hooks/use-tab-screen-top-padding";
 import { useGroups } from "@/features/groups/hooks/use-groups";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, router, type Href } from "expo-router";
+import { Link, router, useFocusEffect, type Href } from "expo-router";
 import { Plus, Users, UserPlus, ListPlus } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -18,14 +20,39 @@ import { useTheme } from "@/hooks/use-theme";
 export default function GroupsScreen() {
   const theme = useTheme();
   const topPadding = useTabScreenTopPadding();
-  const { groups } = useGroups();
+  const { groups, refetch } = useGroups();
   const { width } = useWindowDimensions();
   // 2-column grid: screen minus px-4 (16*2) and the 16px gap between columns.
   const cardSize = Math.floor((width - 32 - 16) / 2);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
+  // NativeTabs keep this screen mounted, so it never remounts to pick up
+  // changes made elsewhere — refetch the list each time it regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
+
   return (
     <SafeAreaView className="bg-background flex-1 px-4">
       <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.foreground}
+          />
+        }
         contentContainerStyle={{
           ...topPadding,
           paddingBottom: 120,

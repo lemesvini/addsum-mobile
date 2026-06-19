@@ -10,7 +10,15 @@ import { useExpenses } from "@/features/expenses/hooks/use-expenses";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
-import { Link, router, useLocalSearchParams, type Href } from "expo-router";
+import {
+  Link,
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+  type Href,
+} from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/common/lib/query-keys";
 import {
   ArrowLeft,
   Check,
@@ -20,10 +28,11 @@ import {
   Trash2,
   Users,
 } from "lucide-react-native";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
+  RefreshControl,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -93,6 +102,36 @@ export default function GroupDetailScreen() {
   const authUser = useAuthUser();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const qc = useQueryClient();
+
+  // Refetch the group and everything under it (members, expenses, categories);
+  // `detail(id)` -> ["groups", id] is a prefix of all of those keys.
+  const refetchGroup = useCallback(
+    () =>
+      id
+        ? qc.refetchQueries({ queryKey: queryKeys.groups.detail(id) })
+        : Promise.resolve(),
+    [qc, id],
+  );
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchGroup();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchGroup]);
+
+  // This screen stays mounted while you push new-expense / expense detail on
+  // top of it, so refetch when it regains focus to reflect new expenses and
+  // payment-status changes.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchGroup();
+    }, [refetchGroup]),
+  );
 
   const isAdmin = !!group && !!authUser && group.adminUserId === authUser._id;
 
@@ -256,6 +295,14 @@ export default function GroupDetailScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.foreground}
+            progressViewOffset={insets.top}
+          />
+        }
       >
         {/* Hero */}
         <View style={{ height: HERO_HEIGHT, overflow: "hidden" }}>
