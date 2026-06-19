@@ -3,7 +3,8 @@ import { Colors } from '@/constants/theme';
 
 export function useAppearance() {
   const scheme = useColorScheme();
-  const colorScheme = scheme === 'unspecified' || scheme == null ? 'light' : scheme;
+  const colorScheme =
+    scheme == null || (scheme as string) === 'unspecified' ? 'light' : scheme;
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme];
 
