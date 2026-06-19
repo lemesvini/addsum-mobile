@@ -3,11 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
+import { useGroupsMutations } from "@/features/groups/hooks/use-groups-mutations";
 import { useCategories } from "@/features/categories/hooks/use-categories";
 import { categoryColor } from "@/features/categories/constants";
 import { useExpenses } from "@/features/expenses/hooks/use-expenses";
-import { useExpenseParticipants } from "@/features/expenses/hooks/use-expense-participants";
-import { useUsers } from "@/features/users/hooks/use-users";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
@@ -18,10 +17,17 @@ import {
   Pencil,
   Plus,
   QrCode,
+  Trash2,
   Users,
 } from "lucide-react-native";
 import { useMemo } from "react";
-import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import Animated, {
   Extrapolation,
@@ -78,15 +84,42 @@ export default function GroupDetailScreen() {
   const { group } = useGroup(id);
   const { members } = useGroupMembers(id);
   const { expenses } = useExpenses(id);
-  const expenseIds = useMemo(() => expenses.map((e) => e._id), [expenses]);
-  const { participants } = useExpenseParticipants(undefined, expenseIds);
+  const participants = useMemo(
+    () => expenses.flatMap((e) => e.participants ?? []),
+    [expenses],
+  );
   const { categories } = useCategories(id);
-  const { users } = useUsers();
+  const { deleteGroup } = useGroupsMutations();
   const authUser = useAuthUser();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
 
   const isAdmin = !!group && !!authUser && group.adminUserId === authUser._id;
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Excluir grupo",
+      "Tem certeza que deseja excluir este grupo? Esta ação não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteGroup(id);
+              router.back();
+            } catch (e: any) {
+              Alert.alert(
+                "Erro",
+                e?.message ?? "Não foi possível excluir o grupo.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const headerHeight = insets.top + 52;
 
@@ -138,12 +171,6 @@ export default function GroupDetailScreen() {
     for (const c of categories) m.set(c._id, c.name);
     return m;
   }, [categories]);
-
-  const userName = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const u of users) m.set(u._id, u.fullName);
-    return m;
-  }, [users]);
 
   // Aggregate each expense's participants into paid / awaiting / to-pay.
   const splitByExpense = useMemo(() => {
@@ -373,19 +400,7 @@ export default function GroupDetailScreen() {
       >
         <BackButton />
         <View className="flex-row items-center gap-3">
-          {isAdmin ? (
-            <TouchableOpacity
-              onPress={() =>
-                router.push(`(modals)/edit-group-modal?id=${id}` as Href)
-              }
-              hitSlop={8}
-              className="h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-            >
-              <Pencil size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() =>
               router.push(`(modals)/share-group-modal?id=${id}` as Href)
             }
@@ -394,7 +409,29 @@ export default function GroupDetailScreen() {
             style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
           >
             <QrCode size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+          {isAdmin ? (
+            <>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`(modals)/edit-group-modal?id=${id}` as Href)
+                }
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+              >
+                <Pencil size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDelete}
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+              >
+                <Trash2 size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </>
+          ) : null}
         </View>
       </View>
 

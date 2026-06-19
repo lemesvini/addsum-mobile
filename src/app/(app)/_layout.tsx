@@ -1,17 +1,6 @@
 import { useRequireAuthUser } from "@/features/auth/auth-store";
-import { useSync } from "@/sync/use-sync";
 import { Redirect, Stack, type Href } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-
-/**
- * SyncRunner mounts the network monitor while the authenticated app is active.
- * It renders nothing — its only purpose is to call useSync() so the monitor
- * starts as soon as the user is inside the (app) group.
- */
-function SyncRunner() {
-  useSync();
-  return null;
-}
 
 export default function AppLayout() {
   const { isHydrated, user } = useRequireAuthUser();
@@ -30,7 +19,6 @@ export default function AppLayout() {
 
   return (
     <>
-      <SyncRunner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="group/[id]/index" />

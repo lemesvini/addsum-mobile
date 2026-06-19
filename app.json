@@ -1,28 +1,28 @@
 {
   "expo": {
-    "name": "Genesis",
-    "slug": "genesis-mobile",
-    "version": "1.0.0",
+    "name": "Addsum",
+    "slug": "addsum-mobile",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/epicora.png",
-    "scheme": "genesismobile",
+    "scheme": "addsummobile",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/epicora.png",
-      "bundleIdentifier": "com.pedrohhcunha.genesis-mobile",
+      "bundleIdentifier": "com.pedrohhcunha.addsum-mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "Permita que o Genesis acesse suas fotos para definir avatares de usuário."
+        "NSPhotoLibraryUsageDescription": "Permita que o addsum acesse suas fotos para definir avatares de usuário."
       },
       "appleTeamId": "8AS9P94UUK"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/epicora.png",
-        "backgroundColor": "#6600FF"
+        "backgroundColor": "#000000"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pedrohhcunha.genesismobile",
+      "package": "com.pedrohhcunha.addsummobile",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
@@ -38,7 +38,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#000000",
           "image": "./assets/epicora-full.png",
           "imageWidth": 280,
           "resizeMode": "contain"
@@ -48,38 +48,12 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permita que o Genesis acesse suas fotos para definir avatares de usuário e anexar comprovantes de despesas.",
-          "cameraPermission": "Permita que o Genesis use a câmera para fotografar comprovantes de despesas.",
+          "photosPermission": "Permita que o Addsum acesse suas fotos para definir avatares de usuário e anexar comprovantes de despesas.",
+          "cameraPermission": "Permita que o Addsum use a câmera para fotografar comprovantes de despesas.",
           "microphonePermission": false
         }
       ],
       "@react-native-community/datetimepicker",
-      [
-        "expo-widgets",
-        {
-          "groupIdentifier": "group.com.pedrohhcunha.genesis-mobile",
-          "widgets": [
-            {
-              "name": "UsersCountWidget",
-              "displayName": "Usuários Genesis",
-              "description": "Total de usuários cadastrados",
-              "supportedFamilies": [
-                "systemSmall",
-                "systemMedium"
-              ]
-            },
-            {
-              "name": "MoviesCountWidget",
-              "displayName": "Filmes Genesis",
-              "description": "Total de filmes cadastrados",
-              "supportedFamilies": [
-                "systemSmall",
-                "systemMedium"
-              ]
-            }
-          ]
-        }
-      ],
       "expo-asset"
     ],
     "experiments": {
@@ -89,8 +63,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c1166964-7865-4574-94be-000b8dda7065"
+        "projectId": "c4bf11e4-bcae-46d0-bed0-180233997af4"
       }
-    }
+    },
+    "owner": "pedrohhcunha"
   }
 }

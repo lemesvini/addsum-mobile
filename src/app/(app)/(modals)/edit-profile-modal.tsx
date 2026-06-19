@@ -9,7 +9,7 @@ import {
   fetchAuthenticatedProfile,
   updateAuthProfile,
 } from "@/features/profile/hooks/use-profile-api";
-import { uploadLocalAvatarUrl } from "@/sync/push/media-upload";
+import { uploadLocalAvatarUrl } from "@/common/api/media-upload";
 import { useAppearance } from "@/hooks/use-appearance";
 import { useTheme } from "@/hooks/use-theme";
 import { router } from "expo-router";

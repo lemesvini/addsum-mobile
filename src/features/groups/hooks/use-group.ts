@@ -1,28 +1,12 @@
-import { useEffect, useState } from "react";
-import { useDatabase } from "@/db/use-db";
-import type { GroupDoc } from "@/db/schemas/group.schema";
+import { useQuery } from "@tanstack/react-query";
+import { getGroup } from "../api/groups-api";
+import { queryKeys } from "@/common/lib/query-keys";
 
-/** Reactive query for a single group by _id. */
 export function useGroup(id: string | undefined) {
-  const { db, isReady } = useDatabase();
-  const [group, setGroup] = useState<GroupDoc | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!db || !isReady || !id) {
-      setIsLoading(false);
-      return;
-    }
-
-    const subscription = (db.groups as any)
-      .findOne({ selector: { _id: id } })
-      .$.subscribe((doc: any) => {
-        setGroup(doc ? (doc.toJSON() as GroupDoc) : null);
-        setIsLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
-  }, [db, isReady, id]);
-
-  return { group, isLoading };
+  const query = useQuery({
+    queryKey: id ? queryKeys.groups.detail(id) : ["groups", "detail", "none"],
+    queryFn: () => getGroup(id as string),
+    enabled: !!id,
+  });
+  return { group: query.data ?? null, isLoading: query.isLoading };
 }

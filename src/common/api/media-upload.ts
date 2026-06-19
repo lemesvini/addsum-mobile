@@ -28,7 +28,6 @@ function uploadMetaFromUri(uri: string, fallbackPrefix: string) {
   return { fileName, fileType };
 }
 
-/** Resolves a local `file:` / `content:` URI to a remote HTTPS URL; passes through HTTPS as-is. */
 export async function uploadLocalImageUrl(
   value: unknown,
   fallbackPrefix: string,
@@ -51,45 +50,14 @@ export function uploadLocalAvatarUrl(
   return uploadLocalImageUrl(avatarUrl, "user-avatar");
 }
 
-export async function transformPayloadWithUploadedMedia(
-  collectionName: string,
-  payload: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  if (collectionName === "users") {
-    const out = { ...payload };
-    if ("avatarUrl" in out) {
-      const uploaded = await uploadLocalImageUrl(out.avatarUrl, "user-avatar");
-      if (uploaded !== undefined) {
-        out.avatarUrl = uploaded;
-      }
-    }
-    return out;
-  }
+export function uploadLocalGroupImageUrl(
+  imageUrl: unknown,
+): Promise<string | undefined> {
+  return uploadLocalImageUrl(imageUrl, "group-image");
+}
 
-  if (collectionName === "groups") {
-    const out = { ...payload };
-    if ("imageUrl" in out) {
-      const uploaded = await uploadLocalImageUrl(out.imageUrl, "group-image");
-      if (uploaded !== undefined) {
-        out.imageUrl = uploaded;
-      }
-    }
-    return out;
-  }
-
-  if (collectionName === "expenses") {
-    const out = { ...payload };
-    if ("receiptImageUrl" in out) {
-      const uploaded = await uploadLocalImageUrl(
-        out.receiptImageUrl,
-        "expense-receipt",
-      );
-      if (uploaded !== undefined) {
-        out.receiptImageUrl = uploaded;
-      }
-    }
-    return out;
-  }
-
-  return payload;
+export function uploadLocalReceiptImageUrl(
+  receiptUrl: unknown,
+): Promise<string | undefined> {
+  return uploadLocalImageUrl(receiptUrl, "expense-receipt");
 }

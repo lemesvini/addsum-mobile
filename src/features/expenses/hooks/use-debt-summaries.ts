@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { useDatabase } from "@/db/use-db";
+import { useMemo } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { useAuthUser } from "@/features/auth/auth-store";
-import type { ExpenseDoc } from "@/db/schemas/expense.schema";
-import type { ExpenseParticipantDoc } from "@/db/schemas/expense-participant.schema";
+import { listGroups } from "@/features/groups/api/groups-api";
+import { listExpenses } from "../api/expenses-api";
+import { queryKeys } from "@/common/lib/query-keys";
 
 export type DebtItem = {
   expenseId: string;
@@ -18,67 +19,59 @@ export type DebtItem = {
 const OUTSTANDING = new Set(["PENDING", "PAID"]);
 
 /**
- * Computes the current user's balances from local expenses + participants:
+ * Computes the current user's balances from the user's expenses (participants
+ * are embedded in each expense response):
  * - `iOwe`: my participant shares on expenses created by someone else.
  * - `owedToMe`: others' participant shares on expenses I created.
- * Reactive — recomputes whenever local data changes (mutation or pull).
  */
 export function useDebtSummaries() {
-  const { db, isReady } = useDatabase();
   const authUser = useAuthUser();
-  const [expenses, setExpenses] = useState<ExpenseDoc[]>([]);
-  const [participants, setParticipants] = useState<ExpenseParticipantDoc[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    if (!db || !isReady) return;
-    const sel = { deletedAt: { $exists: false } };
-    const expSub = (db.expenses as any)
-      .find({ selector: sel })
-      .$.subscribe((docs: any[]) => {
-        setExpenses(docs.map((d) => d.toJSON() as ExpenseDoc));
-        setLoaded(true);
-      });
-    const partSub = (db.expenseParticipants as any)
-      .find({ selector: sel })
-      .$.subscribe((docs: any[]) => {
-        setParticipants(docs.map((d) => d.toJSON() as ExpenseParticipantDoc));
-      });
-    return () => {
-      expSub.unsubscribe();
-      partSub.unsubscribe();
-    };
-  }, [db, isReady]);
+  const groupsQuery = useQuery({
+    queryKey: queryKeys.groups.all(),
+    queryFn: listGroups,
+  });
+  const groups = groupsQuery.data ?? [];
+
+  const expenseQueries = useQueries({
+    queries: groups.map((g) => ({
+      queryKey: queryKeys.groups.expenses(g._id),
+      queryFn: () => listExpenses(g._id),
+    })),
+  });
+
+  const expenses = expenseQueries.flatMap((q) => q.data ?? []);
+  const isLoading =
+    groupsQuery.isLoading || expenseQueries.some((q) => q.isLoading);
 
   return useMemo(() => {
     const me = authUser?._id;
-    const expenseById = new Map(expenses.map((e) => [e._id, e]));
     const iOwe: DebtItem[] = [];
     const owedToMe: DebtItem[] = [];
 
     if (me) {
-      for (const p of participants) {
-        if (!OUTSTANDING.has(p.status)) continue;
-        const expense = expenseById.get(p.expenseId);
-        if (!expense) continue;
-        if (p.userId === me && expense.createdByUserId !== me) {
-          iOwe.push({
-            expenseId: expense._id,
-            groupId: expense.groupId,
-            description: expense.description,
-            amount: p.amountOwed,
-            otherUserId: expense.createdByUserId,
-            status: p.status,
-          });
-        } else if (p.userId !== me && expense.createdByUserId === me) {
-          owedToMe.push({
-            expenseId: expense._id,
-            groupId: expense.groupId,
-            description: expense.description,
-            amount: p.amountOwed,
-            otherUserId: p.userId,
-            status: p.status,
-          });
+      for (const expense of expenses) {
+        for (const p of expense.participants ?? []) {
+          if (!OUTSTANDING.has(p.status)) continue;
+          if (p.userId === me && expense.createdByUserId !== me) {
+            iOwe.push({
+              expenseId: expense._id,
+              groupId: expense.groupId,
+              description: expense.description,
+              amount: p.amountOwed,
+              otherUserId: expense.createdByUserId,
+              status: p.status,
+            });
+          } else if (p.userId !== me && expense.createdByUserId === me) {
+            owedToMe.push({
+              expenseId: expense._id,
+              groupId: expense.groupId,
+              description: expense.description,
+              amount: p.amountOwed,
+              otherUserId: p.userId,
+              status: p.status,
+            });
+          }
         }
       }
     }
@@ -91,7 +84,8 @@ export function useDebtSummaries() {
       totalIOwe,
       totalOwedToMe,
       net: totalOwedToMe - totalIOwe,
-      isLoading: !loaded,
+      isLoading,
     };
-  }, [authUser, expenses, participants, loaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser, JSON.stringify(expenses), isLoading]);
 }

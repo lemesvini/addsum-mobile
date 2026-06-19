@@ -1,32 +1,17 @@
-import { useEffect, useState } from "react";
-import { useDatabase } from "@/db/use-db";
-import type { GroupDoc } from "@/db/schemas/group.schema";
+import { useQuery } from "@tanstack/react-query";
+import { listGroups } from "../api/groups-api";
+import { queryKeys } from "@/common/lib/query-keys";
 
-/**
- * Reactive list of non-deleted groups in the local DB. The server already
- * scopes the pull to the groups the user belongs to, so every local group is
- * one the user can see.
- */
+/** List of groups the user can see (server-scoped). */
 export function useGroups() {
-  const { db, isReady } = useDatabase();
-  const [groups, setGroups] = useState<GroupDoc[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!db || !isReady) return;
-
-    const subscription = (db.groups as any)
-      .find({
-        selector: { deletedAt: { $exists: false } },
-        sort: [{ createdAt: "desc" }],
-      })
-      .$.subscribe((docs: any[]) => {
-        setGroups(docs.map((d) => d.toJSON() as GroupDoc));
-        setIsLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
-  }, [db, isReady]);
-
-  return { groups, isLoading };
+  const query = useQuery({
+    queryKey: queryKeys.groups.all(),
+    queryFn: listGroups,
+  });
+  return {
+    groups: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  };
 }
