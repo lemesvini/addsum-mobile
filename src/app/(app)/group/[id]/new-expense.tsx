@@ -12,7 +12,6 @@ import { useCategories } from "@/features/categories/hooks/use-categories";
 import { useCategoriesMutations } from "@/features/categories/hooks/use-categories-mutations";
 import { useExpensesMutations } from "@/features/expenses/hooks/use-expenses-mutations";
 import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
-import { useUsers } from "@/features/users/hooks/use-users";
 import { useTheme } from "@/hooks/use-theme";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -108,7 +107,6 @@ export default function NewExpenseScreen() {
   const theme = useTheme();
   const { categories } = useCategories(groupId);
   const { members } = useGroupMembers(groupId);
-  const { users } = useUsers();
   const { createExpense } = useExpensesMutations();
 
   const {
@@ -150,16 +148,16 @@ export default function NewExpenseScreen() {
     if (members.length > 0 && getValues("participantUserIds").length === 0) {
       setValue(
         "participantUserIds",
-        members.map((m) => m.userId),
+        members.map((m) => m._id),
       );
     }
   }, [members, getValues, setValue]);
 
   const userName = useMemo(() => {
     const map = new Map<string, string>();
-    for (const u of users) map.set(u._id, u.fullName);
+    for (const u of members) map.set(u._id, u.fullName);
     return map;
-  }, [users]);
+  }, [members]);
 
   const categoryOptions = useMemo(
     () => categories.map((c) => ({ value: c._id, label: c.name })),
@@ -323,21 +321,21 @@ export default function NewExpenseScreen() {
                         Participantes
                       </Text>
                       {members.map((m) => {
-                        const active = value.includes(m.userId);
+                        const active = value.includes(m._id);
                         return (
                           <Pressable
                             key={m._id}
                             onPress={() =>
                               onChange(
                                 active
-                                  ? value.filter((id) => id !== m.userId)
-                                  : [...value, m.userId],
+                                  ? value.filter((id) => id !== m._id)
+                                  : [...value, m._id],
                               )
                             }
                             className="border-border flex-row items-center justify-between border-b py-3"
                           >
                             <Text className="text-foreground">
-                              {userName.get(m.userId) ?? "Membro"}
+                              {userName.get(m._id) ?? "Membro"}
                             </Text>
                             <View
                               className={

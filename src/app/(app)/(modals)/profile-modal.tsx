@@ -2,10 +2,9 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { useLogout } from "@/features/auth/hooks/use-logout";
-import { useUser } from "@/features/users/hooks/use-user";
+import { useProfile } from "@/features/profile/hooks/use-profile";
 import { useTheme } from "@/hooks/use-theme";
 import { router, type Href } from "expo-router";
-import { useRef } from "react";
 import {
   ChevronRight,
   FileText,
@@ -76,12 +75,12 @@ function Row({
 export default function ProfileModal() {
   const theme = useTheme();
   const authUser = useAuthUser();
-  const { user } = useUser(authUser?._id);
+  const { profile } = useProfile();
   const { logout } = useLogout();
 
-  const displayName = user?.fullName ?? authUser?.email ?? "Usuário";
-  const email = user?.email ?? authUser?.email ?? "";
-  const avatarUrl = user?.avatarUrl?.trim() ?? "";
+  const displayName = profile?.fullName ?? authUser?.email ?? "Usuário";
+  const email = profile?.email ?? authUser?.email ?? "";
+  const avatarUrl = profile?.avatarUrl?.trim() ?? "";
   const initials =
     displayName
       .split(" ")
@@ -90,25 +89,6 @@ export default function ProfileModal() {
       .map((part) => part.charAt(0))
       .join("")
       .toUpperCase() || "U";
-
-  const tapCount = useRef(0);
-  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Easter egg: 5 toques rápidos na versão abrem o menu de desenvolvedor.
-  const handleVersionTap = () => {
-    if (tapTimer.current) clearTimeout(tapTimer.current);
-    tapCount.current += 1;
-
-    if (tapCount.current >= 5) {
-      tapCount.current = 0;
-      router.push("/debug-database" as Href);
-      return;
-    }
-
-    tapTimer.current = setTimeout(() => {
-      tapCount.current = 0;
-    }, 800);
-  };
 
   const openUrl = (url: string) => {
     void Linking.openURL(url).catch(() => {
@@ -212,17 +192,11 @@ export default function ProfileModal() {
         </View>
       </ScrollView>
 
-      <TouchableOpacity
-        onPress={handleVersionTap}
-        activeOpacity={1}
-        accessibilityRole="button"
-        accessibilityLabel="Versão do aplicativo"
-        className="absolute bottom-8 w-full"
-      >
+      <View className="absolute bottom-8 w-full">
         <Text className="text-muted-foreground text-center text-xs">
           Versão 1.0.0
         </Text>
-      </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }

@@ -5,12 +5,10 @@ import {
   useDebtSummaries,
   type DebtItem,
 } from "@/features/expenses/hooks/use-debt-summaries";
-import { useUsers } from "@/features/users/hooks/use-users";
-import { useMemo } from "react";
+import { useAllMemberNames } from "@/features/groups/hooks/use-all-member-names";
 import { Pressable, ScrollView, View } from "react-native";
-import { useAuthUser } from "@/features/auth/auth-store";
-import { useUser } from "@/features/users/hooks/use-user";
-import { DollarSign, Scale, User, Wallet } from "lucide-react-native";
+import { useProfile } from "@/features/profile/hooks/use-profile";
+import { User, Wallet } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { router, type Href } from "expo-router";
 import { Image } from "expo-image";
@@ -64,26 +62,10 @@ function DebtRow({
 export default function HomeScreen() {
   const topPadding = useTabScreenTopPadding();
   const { iOwe, owedToMe, totalIOwe, totalOwedToMe, net } = useDebtSummaries();
-  const { users } = useUsers();
-  const authUser = useAuthUser();
-  const { user } = useUser(authUser?._id);
-  const avatarUrl = user?.avatarUrl?.trim() ?? "";
+  const { profile } = useProfile();
+  const nameById = useAllMemberNames();
+  const avatarUrl = profile?.avatarUrl?.trim() ?? "";
   const theme = useTheme();
-
-  const nameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const u of users) m.set(u._id, u.fullName);
-    return m;
-  }, [users]);
-
-  const creditorCount = useMemo(
-    () => new Set(iOwe.map((d) => d.otherUserId)).size,
-    [iOwe],
-  );
-  const debtorCount = useMemo(
-    () => new Set(owedToMe.map((d) => d.otherUserId)).size,
-    [owedToMe],
-  );
 
   const userName = (id: string) => nameById.get(id) ?? "Alguém";
 
@@ -95,7 +77,7 @@ export default function HomeScreen() {
       <View className="px-5">
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-foreground text-3xl font-extrabold tracking-tight">
-            Oi, {user?.fullName.split(" ")[0] ?? "Usuário"}
+            Oi, {profile?.fullName.split(" ")[0] ?? "Usuário"}
           </Text>
           <Pressable
             className="items-center justify-center overflow-hidden rounded-full bg-muted"

@@ -6,8 +6,6 @@ import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
 import { useCategories } from "@/features/categories/hooks/use-categories";
 import { categoryColor } from "@/features/categories/constants";
 import { useExpenses } from "@/features/expenses/hooks/use-expenses";
-import { useExpenseParticipants } from "@/features/expenses/hooks/use-expense-participants";
-import { useUsers } from "@/features/users/hooks/use-users";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
@@ -78,10 +76,11 @@ export default function GroupDetailScreen() {
   const { group } = useGroup(id);
   const { members } = useGroupMembers(id);
   const { expenses } = useExpenses(id);
-  const expenseIds = useMemo(() => expenses.map((e) => e._id), [expenses]);
-  const { participants } = useExpenseParticipants(undefined, expenseIds);
+  const participants = useMemo(
+    () => expenses.flatMap((e) => e.participants ?? []),
+    [expenses],
+  );
   const { categories } = useCategories(id);
-  const { users } = useUsers();
   const authUser = useAuthUser();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -138,12 +137,6 @@ export default function GroupDetailScreen() {
     for (const c of categories) m.set(c._id, c.name);
     return m;
   }, [categories]);
-
-  const userName = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const u of users) m.set(u._id, u.fullName);
-    return m;
-  }, [users]);
 
   // Aggregate each expense's participants into paid / awaiting / to-pay.
   const splitByExpense = useMemo(() => {
