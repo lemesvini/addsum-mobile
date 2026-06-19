@@ -2,7 +2,7 @@
   "name": "genesis-mobile",
   "packageManager": "pnpm@10.15.1",
   "main": "expo-router/entry",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Addsum",
     "slug": "addsum-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/epicora.png",
     "scheme": "addsummobile",
