@@ -8,10 +8,11 @@ import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
 import { useTheme } from "@/hooks/use-theme";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
-import { Check, Image as ImageIcon, X } from "lucide-react-native";
+import { Check, Image as ImageIcon, Trash2, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -65,7 +66,7 @@ export default function ExpenseDetailScreen() {
   const participants = expense?.participants ?? [];
   const { members } = useGroupMembers(groupId);
   const { categories } = useCategories(groupId);
-  const { declarePayment, confirmPayment, rejectPayment } =
+  const { declarePayment, confirmPayment, rejectPayment, deleteExpense } =
     useExpensesMutations();
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -123,14 +124,50 @@ export default function ExpenseDetailScreen() {
     }
   };
 
+  const handleDeleteExpense = () => {
+    Alert.alert(
+      "Excluir despesa",
+      "Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteExpense({ groupId, expenseId });
+              router.back();
+            } catch (e: any) {
+              Alert.alert(
+                "Erro",
+                e?.message ?? "Não foi possível excluir a despesa.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const header = (
     <View className="flex-row items-center justify-between px-5 py-3 mt-2">
       <Text className="text-muted-foreground text-lg font-bold">
         Detalhes da despesa
       </Text>
-      <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-        <X size={24} color={theme.foreground} />
-      </TouchableOpacity>
+      {isCreator ? (
+        <TouchableOpacity
+          onPress={handleDeleteExpense}
+          hitSlop={8}
+          className="flex-row items-center gap-1.5"
+        >
+          <Trash2 size={20} color={theme.destructive} />
+          {/* <Text className="text-destructive font-semibold">Excluir</Text> */}
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+          <X size={24} color={theme.foreground} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -269,17 +306,29 @@ export default function ExpenseDetailScreen() {
                   busy={busy}
                   onDeclare={() =>
                     run(p._id, () =>
-                      declarePayment({ groupId, expenseId, participantId: p._id }),
+                      declarePayment({
+                        groupId,
+                        expenseId,
+                        participantId: p._id,
+                      }),
                     )
                   }
                   onConfirm={() =>
                     run(p._id, () =>
-                      confirmPayment({ groupId, expenseId, participantId: p._id }),
+                      confirmPayment({
+                        groupId,
+                        expenseId,
+                        participantId: p._id,
+                      }),
                     )
                   }
                   onReject={() =>
                     run(p._id, () =>
-                      rejectPayment({ groupId, expenseId, participantId: p._id }),
+                      rejectPayment({
+                        groupId,
+                        expenseId,
+                        participantId: p._id,
+                      }),
                     )
                   }
                 />

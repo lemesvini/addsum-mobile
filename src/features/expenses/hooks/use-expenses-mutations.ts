@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthUser } from "@/features/auth/auth-store";
 import {
   createExpense as apiCreateExpense,
+  deleteExpense as apiDeleteExpense,
   declarePayment as apiDeclarePayment,
   confirmPayment as apiConfirmPayment,
   rejectPayment as apiRejectPayment,
@@ -92,6 +93,20 @@ export function useExpensesMutations() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: ({
+      groupId,
+      expenseId,
+    }: {
+      groupId: string;
+      expenseId: string;
+    }) => apiDeleteExpense(groupId, expenseId),
+    onSuccess: (_data, { groupId, expenseId }) => {
+      qc.removeQueries({ queryKey: queryKeys.groups.expense(groupId, expenseId) });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.expenses(groupId) });
+    },
+  });
+
   const createExpense = useCallback(
     async (input: CreateExpenseInput): Promise<string> => {
       if (!authUser) throw new Error("Not authenticated");
@@ -160,5 +175,17 @@ export function useExpensesMutations() {
     [rejectMutation],
   );
 
-  return { createExpense, declarePayment, confirmPayment, rejectPayment };
+  const deleteExpense = useCallback(
+    (args: { groupId: string; expenseId: string }): Promise<void> =>
+      deleteMutation.mutateAsync(args).then(() => undefined),
+    [deleteMutation],
+  );
+
+  return {
+    createExpense,
+    deleteExpense,
+    declarePayment,
+    confirmPayment,
+    rejectPayment,
+  };
 }
