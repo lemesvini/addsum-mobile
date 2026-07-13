@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useGroup } from "@/features/groups/hooks/use-group";
 import { useGroupMembers } from "@/features/groups/hooks/use-group-members";
-import { useGroupsMutations } from "@/features/groups/hooks/use-groups-mutations";
+import { GroupOverflowMenu } from "@/features/groups/components/group-overflow-menu";
 import { useCategories } from "@/features/categories/hooks/use-categories";
 import { categoryColor } from "@/features/categories/constants";
 import { useExpenses } from "@/features/expenses/hooks/use-expenses";
@@ -11,23 +11,10 @@ import { useAuthUser } from "@/features/auth/auth-store";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { Link, router, useLocalSearchParams, type Href } from "expo-router";
-import {
-  ArrowLeft,
-  Check,
-  Pencil,
-  Plus,
-  QrCode,
-  Trash2,
-  Users,
-} from "lucide-react-native";
-import { useMemo } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Check, Copy, Plus, Users } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { PieChart } from "react-native-gifted-charts";
 import Animated, {
   Extrapolation,
@@ -50,23 +37,20 @@ function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 }
 
-/** Short relative time in pt-BR, e.g. "agora", "há 5 min", "há 3 d". */
-function createdAtRelative(iso: string | undefined): string {
+/**
+ * Formats an expense's calendar date (dd/mm/aaaa) in pt-BR. Expense dates are
+ * stored as UTC midnight of the chosen day, so format in UTC to keep the day
+ * stable across timezones.
+ */
+function formatExpenseDate(iso: string | undefined): string {
   if (!iso) return "";
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "";
-  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
-  if (diffSec < 60) return "agora";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `há ${diffMin} min`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `há ${diffHour} h`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 30) return `há ${diffDay} d`;
-  return new Date(iso).toLocaleDateString("pt-BR", {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -89,36 +73,20 @@ export default function GroupDetailScreen() {
     [expenses],
   );
   const { categories } = useCategories(id);
-  const { deleteGroup } = useGroupsMutations();
   const authUser = useAuthUser();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
 
-  const isAdmin = !!group && !!authUser && group.adminUserId === authUser._id;
+  const isLeaving =
+    members.find((m) => m._id === authUser?._id)?.membershipStatus ===
+    "LEAVING";
 
-  const handleDelete = () => {
-    Alert.alert(
-      "Excluir grupo",
-      "Tem certeza que deseja excluir este grupo? Esta ação não pode ser desfeita.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteGroup(id);
-              router.back();
-            } catch (e: any) {
-              Alert.alert(
-                "Erro",
-                e?.message ?? "Não foi possível excluir o grupo.",
-              );
-            }
-          },
-        },
-      ],
-    );
+  const [codeCopied, setCodeCopied] = useState(false);
+  const handleCopyCode = async () => {
+    if (!group?.inviteCode) return;
+    await Clipboard.setStringAsync(group.inviteCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 1500);
   };
 
   const headerHeight = insets.top + 52;
@@ -237,7 +205,7 @@ export default function GroupDetailScreen() {
               </Text>
               <Text className="text-muted-foreground text-sm">
                 {categoryName.get(e.categoryId) ?? "Categoria"} ·{" "}
-                {createdAtRelative(e.createdAt)}
+                {formatExpenseDate(e.date ?? e.createdAt)}
               </Text>
             </View>
           </View>
@@ -283,7 +251,7 @@ export default function GroupDetailScreen() {
           <Animated.View
             style={heroOverlayStyle}
             className="absolute inset-x-0 bottom-0 items-start px-5 pb-5"
-            pointerEvents="none"
+            pointerEvents="box-none"
           >
             <Text
               className="text-foreground text-left text-3xl font-extrabold"
@@ -295,8 +263,25 @@ export default function GroupDetailScreen() {
               <Users size={16} color="#6B7280" />
               <Text className="text-muted-foreground text-sm font-medium">
                 {members.length} {members.length === 1 ? "membro" : "membros"}
-                {group?.inviteCode ? ` · ${group.inviteCode}` : ""}
               </Text>
+              {group?.inviteCode ? (
+                <Pressable
+                  onPress={handleCopyCode}
+                  hitSlop={8}
+                  className="flex-row items-center gap-2 active:opacity-70"
+                  accessibilityRole="button"
+                  accessibilityLabel="Copiar código do grupo"
+                >
+                  <Text className="text-muted-foreground text-sm font-medium">
+                  · {group.inviteCode}
+                  </Text>
+                  {codeCopied ? (
+                    <Check size={14} color={theme.primary} />
+                  ) : (
+                    <Copy size={14} color="#6B7280" />
+                  )}
+                </Pressable>
+              ) : null}
             </View>
           </Animated.View>
         </View>
@@ -309,6 +294,14 @@ export default function GroupDetailScreen() {
           </Card>
         </View> */}
         <View className="bg-background px-5 pt-5">
+          {isLeaving ? (
+            <Card className="mb-4 border border-border py-3">
+              <Text className="text-muted-foreground px-4 text-sm">
+                Você está saindo deste grupo. Quite os pagamentos pendentes para
+                concluir.
+              </Text>
+            </Card>
+          ) : null}
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="text-foreground text-lg font-semibold">
               Em aberto
@@ -399,40 +392,7 @@ export default function GroupDetailScreen() {
         className="absolute left-4 right-4 flex-row items-center justify-between"
       >
         <BackButton />
-        <View className="flex-row items-center gap-3">
-          {/* <TouchableOpacity
-            onPress={() =>
-              router.push(`(modals)/share-group-modal?id=${id}` as Href)
-            }
-            hitSlop={8}
-            className="h-10 w-10 items-center justify-center rounded-full"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-          >
-            <QrCode size={20} color="#FFFFFF" />
-          </TouchableOpacity> */}
-          {isAdmin ? (
-            <>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push(`(modals)/edit-group-modal?id=${id}` as Href)
-                }
-                hitSlop={8}
-                className="h-10 w-10 items-center justify-center rounded-full"
-                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-              >
-                <Pencil size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleDelete}
-                hitSlop={8}
-                className="h-10 w-10 items-center justify-center rounded-full"
-                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-              >
-                <Trash2 size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </>
-          ) : null}
-        </View>
+        <GroupOverflowMenu group={group} onRemoved={() => router.back()} />
       </View>
 
       <View className="absolute bottom-8 right-5">

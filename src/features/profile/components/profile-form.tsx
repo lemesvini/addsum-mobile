@@ -32,6 +32,15 @@ export function ProfileForm({
         error={errors.fullName}
         editable={!disabled}
       />
+      <FormInput
+        control={control}
+        name="pix"
+        label="Chave Pix"
+        placeholder="CPF, telefone, e-mail ou chave aleatória"
+        error={errors.pix}
+        editable={!disabled}
+        autoCapitalize="none"
+      />
     </>
   );
 }

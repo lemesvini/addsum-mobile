@@ -1,5 +1,8 @@
 import { Card } from "@/components/ui/card";
+import { CopyableField } from "@/components/ui/copyable-field";
 import { Text } from "@/components/ui/text";
+import { formatPixKey, getPixKeyLabel } from "@/common/utils/pix";
+import { buildPixPayload } from "@/common/utils/pix-brcode";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { useCategories } from "@/features/categories/hooks/use-categories";
 import { useExpense } from "@/features/expenses/hooks/use-expense";
@@ -30,10 +33,14 @@ function formatBRL(n: number): string {
 function formatDate(iso: string | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  // Expense dates are stored as UTC midnight of the chosen calendar day;
+  // format in UTC so the day doesn't shift across timezones.
   return d.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -84,6 +91,13 @@ export default function ExpenseDetailScreen() {
       categories.find((c) => c._id === expense?.categoryId)?.name ??
       "Categoria",
     [categories, expense?.categoryId],
+  );
+
+  const creatorName = userName.get(expense?.createdByUserId ?? "") ?? "o criador";
+  const creatorPix = useMemo(
+    () =>
+      members.find((m) => m._id === expense?.createdByUserId)?.pix?.trim() ?? "",
+    [members, expense?.createdByUserId],
   );
 
   // Aggregate the split into paid / awaiting-confirmation / still-to-pay.
@@ -154,20 +168,26 @@ export default function ExpenseDetailScreen() {
       <Text className="text-muted-foreground text-lg font-bold">
         Detalhes da despesa
       </Text>
-      {isCreator ? (
+      <View className="flex-row items-center gap-4">
+        {isCreator ? (
+          <TouchableOpacity
+            onPress={handleDeleteExpense}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Excluir despesa"
+          >
+            <Trash2 size={20} color={theme.destructive} />
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
-          onPress={handleDeleteExpense}
+          onPress={() => router.back()}
           hitSlop={8}
-          className="flex-row items-center gap-1.5"
+          accessibilityRole="button"
+          accessibilityLabel="Fechar"
         >
-          <Trash2 size={20} color={theme.destructive} />
-          {/* <Text className="text-destructive font-semibold">Excluir</Text> */}
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
           <X size={24} color={theme.foreground} />
         </TouchableOpacity>
-      )}
+      </View>
     </View>
   );
 
@@ -247,8 +267,8 @@ export default function ExpenseDetailScreen() {
             </Text>
           </View>
           <View className="bg-transparent mt-4 px-6 flex flex-row items-center justify-between">
-            <Text className="text-muted-foreground">Criado em</Text>
-            <Text className="">{formatDate(expense.date)}</Text>
+            <Text className="text-muted-foreground">Data</Text>
+            <Text className="">{formatDate(expense.date ?? expense.createdAt)}</Text>
           </View>
           <View className="bg-transparent mt-4 px-6 flex flex-row items-center justify-between">
             <Text className="text-muted-foreground">Valor da despesa</Text>
@@ -304,6 +324,8 @@ export default function ExpenseDetailScreen() {
                   isOwnRow={isOwnRow}
                   isCreator={isCreator}
                   busy={busy}
+                  creatorName={creatorName}
+                  creatorPix={creatorPix}
                   onDeclare={() =>
                     run(p._id, () =>
                       declarePayment({
@@ -407,7 +429,8 @@ function LegendRow({
 
 /**
  * Role- and status-gated action row for a single participant.
- * - Own row, PENDING/REJECTED -> "Declarar pagamento".
+ * - Own row, not the creator, not yet CONFIRMED -> who/where to pay (Pix) +
+ *   "Declarar pagamento" when PENDING/REJECTED.
  * - Creator viewing someone else's PAID row -> "Confirmar" / "Rejeitar".
  * - Otherwise renders nothing (just the status badge above is shown).
  */
@@ -416,6 +439,8 @@ function ParticipantActions({
   isOwnRow,
   isCreator,
   busy,
+  creatorName,
+  creatorPix,
   onDeclare,
   onConfirm,
   onReject,
@@ -424,33 +449,65 @@ function ParticipantActions({
   isOwnRow: boolean;
   isCreator: boolean;
   busy: boolean;
+  creatorName: string;
+  creatorPix: string;
   onDeclare: () => void;
   onConfirm: () => void;
   onReject: () => void;
 }) {
   const status = participant.status;
 
-  if (
-    isOwnRow &&
-    !isCreator &&
-    (status === "PENDING" || status === "REJECTED")
-  ) {
+  if (isOwnRow && !isCreator && status !== "CONFIRMED") {
+    const showDeclare = status === "PENDING" || status === "REJECTED";
     return (
-      <Pressable
-        disabled={busy}
-        onPress={onDeclare}
-        className={`bg-primary mt-3 h-10 flex-row items-center justify-center rounded-md active:opacity-90 ${
-          busy ? "opacity-50" : ""
-        }`}
-      >
-        <Text className="text-primary-foreground font-semibold">
-          {busy
-            ? "Enviando..."
-            : status === "REJECTED"
-              ? "Declarar novamente"
-              : "Declarar pagamento"}
-        </Text>
-      </Pressable>
+      <View className="mt-3 gap-3">
+        <View>
+          <Text className="text-muted-foreground text-sm">
+            Pagar para {creatorName}
+          </Text>
+          {creatorPix ? (
+            <View className="mt-2 gap-2">
+              <CopyableField
+                label="Chave Pix"
+                displayValue={formatPixKey(creatorPix)}
+                copyValue={creatorPix}
+                caption={getPixKeyLabel(creatorPix)}
+              />
+              <CopyableField
+                label="Pix copia e cola"
+                displayValue="Toque em copiar para pagar o valor exato"
+                copyValue={buildPixPayload({
+                  pixKey: creatorPix,
+                  amount: participant.amountOwed,
+                  merchantName: creatorName,
+                })}
+                caption={formatBRL(participant.amountOwed)}
+              />
+            </View>
+          ) : (
+            <Text className="text-muted-foreground mt-2 text-xs">
+              O criador ainda não cadastrou uma chave Pix.
+            </Text>
+          )}
+        </View>
+        {showDeclare ? (
+          <Pressable
+            disabled={busy}
+            onPress={onDeclare}
+            className={`bg-primary h-10 flex-row items-center justify-center rounded-md active:opacity-90 ${
+              busy ? "opacity-50" : ""
+            }`}
+          >
+            <Text className="text-primary-foreground font-semibold">
+              {busy
+                ? "Enviando..."
+                : status === "REJECTED"
+                  ? "Declarar novamente"
+                  : "Declarar pagamento"}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     );
   }
 

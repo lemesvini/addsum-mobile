@@ -11,10 +11,13 @@ import "../global.css";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { queryClient } from "@/lib/query-client";
+import { usePushNotificationRouting } from "@/features/notifications/use-push-notification-routing";
 
 nwColorScheme.set("dark");
 
 export default function RootLayout() {
+  usePushNotificationRouting();
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={DarkTheme}>

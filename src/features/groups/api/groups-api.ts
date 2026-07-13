@@ -15,8 +15,10 @@ export type Group = {
   updatedAt?: string;
 };
 
-/** `GET /groups/:id/members` returns the joined User documents. */
-export type GroupMember = User;
+export type GroupMembershipStatus = "ACTIVE" | "LEAVING";
+
+/** `GET /groups/:id/members` returns the joined User documents + membership status. */
+export type GroupMember = User & { membershipStatus?: GroupMembershipStatus };
 
 export type CreateGroupInput = {
   name: string;
@@ -44,8 +46,8 @@ export async function getGroup(id: string): Promise<Group> {
   return response.data;
 }
 
-export async function getGroupMembers(id: string): Promise<User[]> {
-  const response = await api.get<ListResponse<User>>(`/groups/${id}/members?limit=100`);
+export async function getGroupMembers(id: string): Promise<GroupMember[]> {
+  const response = await api.get<ListResponse<GroupMember>>(`/groups/${id}/members?limit=100`);
   return response.data;
 }
 
@@ -69,5 +71,12 @@ export async function deleteGroup(id: string): Promise<void> {
 
 export async function regenerateInviteCode(id: string): Promise<Group> {
   const response = await api.post<SingleResponse<Group>>(`/groups/${id}/regenerate-invite-code`);
+  return response.data;
+}
+
+export async function leaveGroup(id: string): Promise<{ status: "LEFT" | "LEAVING" }> {
+  const response = await api.post<SingleResponse<{ status: "LEFT" | "LEAVING" }>>(
+    `/groups/${id}/leave`,
+  );
   return response.data;
 }

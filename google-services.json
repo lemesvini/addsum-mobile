@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "402553403474",
+    "project_id": "addsum-e1fe7",
+    "storage_bucket": "addsum-e1fe7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:402553403474:android:970b46dc42c6d70f04878b",
+        "android_client_info": {
+          "package_name": "com.pedrohhcunha.addsummobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAblTiC9uSuvbZGt9BLFgbGuIX7jSsR9Pw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

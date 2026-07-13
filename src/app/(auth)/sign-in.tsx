@@ -14,13 +14,7 @@ import { Redirect, useRouter, type Href } from "expo-router";
 import { Mail, KeyRound } from "lucide-react-native";
 import { Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 
 export default function SignInScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -61,10 +55,10 @@ export default function SignInScreen() {
   );
 
   return (
-    <View className="flex-1 items-center justify-center p-6">
+    <View className="bg-background flex-1 items-center justify-center p-6">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1  justify-center"
+        className="w-full justify-center"
       >
         <Text className="text-foreground text-3xl font-extrabold tracking-tight">
           Acesse sua conta
@@ -113,7 +107,9 @@ export default function SignInScreen() {
               Criar uma conta
             </Text>
           </Pressable>
-          <Pressable>
+          <Pressable
+            onPress={() => router.push("/(auth)/forgot-password" as Href)}
+          >
             <Text className="text-muted-foreground text-sm">
               Esqueci minha senha
             </Text>

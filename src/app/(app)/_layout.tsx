@@ -1,9 +1,11 @@
 import { useRequireAuthUser } from "@/features/auth/auth-store";
+import { useTheme } from "@/hooks/use-theme";
 import { Redirect, Stack, type Href } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AppLayout() {
   const { isHydrated, user } = useRequireAuthUser();
+  const theme = useTheme();
 
   if (!isHydrated) {
     return (
@@ -21,6 +23,20 @@ export default function AppLayout() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="notifications"
+          options={{
+            headerShown: true,
+            headerTitle: "Notificações",
+            headerBackTitle: "Voltar",
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: theme.background },
+            headerTintColor: theme.foreground,
+            headerTitleStyle: { color: theme.foreground },
+          }}
+        />
+        <Stack.Screen name="friend/[userId]/index" />
+        <Stack.Screen name="friend/[userId]/pay" />
         <Stack.Screen name="group/[id]/index" />
         <Stack.Screen
           name="group/[id]/new-expense"
@@ -41,6 +57,10 @@ export default function AppLayout() {
         <Stack.Screen
           name="(modals)/edit-profile-modal"
           options={{ presentation: "modal", title: "Editar perfil" }}
+        />
+        <Stack.Screen
+          name="(modals)/delete-account"
+          options={{ presentation: "modal", title: "Excluir conta" }}
         />
         <Stack.Screen
           name="(modals)/create-group-modal"

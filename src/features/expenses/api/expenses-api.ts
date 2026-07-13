@@ -38,12 +38,20 @@ export type CreateExpenseInput = {
 
 type ApiResponse<T> = { message: string; data: T };
 
+/** Sort key for an expense: its own date, falling back to creation time. */
+function expenseSortTime(e: Expense): number {
+  const t = new Date(e.date ?? e.createdAt).getTime();
+  return Number.isNaN(t) ? new Date(e.createdAt).getTime() : t;
+}
+
 export async function listExpenses(groupId: string): Promise<Expense[]> {
   const response = await api.get<ApiResponse<Expense[]>>(
     `/groups/${groupId}/expenses`,
     { params: { limit: 100, sort: JSON.stringify({ date: "desc" }) } },
   );
-  return response.data;
+  // Newest first by expense date, falling back to creation date for records
+  // that don't carry an expense date.
+  return [...response.data].sort((a, b) => expenseSortTime(b) - expenseSortTime(a));
 }
 
 export async function getExpense(
@@ -99,4 +107,26 @@ export async function rejectPayment(
   await api.post(
     `/groups/${groupId}/expenses/participants/${participantId}/reject-payment`,
   );
+}
+
+export type SettlementResult = {
+  confirmed: number;
+  confirmedAmount: number;
+  declared: number;
+  declaredAmount: number;
+};
+
+/**
+ * Settles every outstanding expense between the current user and `otherUserId`
+ * across all shared groups in one call. Confirms what they owe me; declares
+ * (marks as paid) what I owe them.
+ */
+export async function settleWithUser(
+  otherUserId: string,
+): Promise<SettlementResult> {
+  const response = await api.post<ApiResponse<SettlementResult>>(
+    `/settlements`,
+    { otherUserId },
+  );
+  return response.data;
 }

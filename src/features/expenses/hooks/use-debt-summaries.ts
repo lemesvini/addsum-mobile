@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { listGroups } from "@/features/groups/api/groups-api";
@@ -8,6 +8,8 @@ import { queryKeys } from "@/common/lib/query-keys";
 export type DebtItem = {
   expenseId: string;
   groupId: string;
+  /** My participant row id on this expense (needed to declare payment). */
+  participantId: string;
   description: string;
   amount: number;
   /** The counterparty: creditor when I owe, debtor when owed to me. */
@@ -44,7 +46,13 @@ export function useDebtSummaries() {
   const isLoading =
     groupsQuery.isLoading || expenseQueries.some((q) => q.isLoading);
 
-  return useMemo(() => {
+  const refetch = useCallback(async () => {
+    await groupsQuery.refetch();
+    await Promise.all(expenseQueries.map((q) => q.refetch()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupsQuery.refetch, JSON.stringify(groups.map((g) => g._id))]);
+
+  const summary = useMemo(() => {
     const me = authUser?._id;
     const iOwe: DebtItem[] = [];
     const owedToMe: DebtItem[] = [];
@@ -57,6 +65,7 @@ export function useDebtSummaries() {
             iOwe.push({
               expenseId: expense._id,
               groupId: expense.groupId,
+              participantId: p._id,
               description: expense.description,
               amount: p.amountOwed,
               otherUserId: expense.createdByUserId,
@@ -66,6 +75,7 @@ export function useDebtSummaries() {
             owedToMe.push({
               expenseId: expense._id,
               groupId: expense.groupId,
+              participantId: p._id,
               description: expense.description,
               amount: p.amountOwed,
               otherUserId: p.userId,
@@ -88,4 +98,6 @@ export function useDebtSummaries() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser, JSON.stringify(expenses), isLoading]);
+
+  return { ...summary, refetch };
 }

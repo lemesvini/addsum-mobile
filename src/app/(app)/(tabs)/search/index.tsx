@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
-import { Stack, router, type Href } from "expo-router";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { router, type Href } from "expo-router";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
-import { Receipt, Users } from "lucide-react-native";
+import { Receipt, Search as SearchIcon, Users, X } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Card } from "@/components/ui/card";
+import { useTabScreenTopPadding } from "@/hooks/use-tab-screen-top-padding";
 import { useGroups } from "@/features/groups/hooks/use-groups";
 import { useAllExpenses } from "@/features/expenses/hooks/use-all-expenses";
 import { useTheme } from "@/hooks/use-theme";
@@ -16,6 +17,7 @@ function formatBRL(n: number): string {
 
 export default function SearchScreen() {
   const theme = useTheme();
+  const topPadding = useTabScreenTopPadding();
   const [query, setQuery] = useState("");
 
   const { groups } = useGroups();
@@ -40,9 +42,7 @@ export default function SearchScreen() {
 
   const matchedExpenses = useMemo(() => {
     if (!term) return [];
-    return expenses.filter((e) =>
-      e.description.toLowerCase().includes(term),
-    );
+    return expenses.filter((e) => e.description.toLowerCase().includes(term));
   }, [expenses, term]);
 
   const openGroup = (groupId: string) => {
@@ -62,29 +62,49 @@ export default function SearchScreen() {
   const hasResults = matchedGroups.length > 0 || matchedExpenses.length > 0;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Search",
-          headerLargeTitle: true,
-        }}
-      />
-
-      <Stack.SearchBar
-        placement="automatic"
-        placeholder="Buscar grupos e despesas..."
-        onChangeText={(e) => setQuery(e.nativeEvent.text)}
-        onCancelButtonPress={() => setQuery("")}
-      />
-
+    <View className="bg-background flex-1 px-4">
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+        contentContainerStyle={{ ...topPadding, paddingBottom: 120 }}
         keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
       >
+        <Text className="text-foreground mb-4 text-3xl font-extrabold tracking-tight">
+          Buscar
+        </Text>
+
+        <View className="border-border bg-card mb-2 flex-row items-center gap-2 rounded-2xl border px-4">
+          <SearchIcon size={18} color={theme.mutedForeground} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Buscar grupos e despesas..."
+            placeholderTextColor={theme.mutedForeground}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              fontSize: 15,
+              color: theme.cardForeground,
+            }}
+          />
+          {query.length > 0 ? (
+            <Pressable
+              onPress={() => setQuery("")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Limpar busca"
+            >
+              <X size={18} color={theme.mutedForeground} />
+            </Pressable>
+          ) : null}
+        </View>
+
         {!hasQuery ? (
           <Text className="text-muted-foreground mt-12 text-center">
-            Digite algo para buscar grupos e despesas.
+            
           </Text>
         ) : !hasResults ? (
           <Text className="text-muted-foreground mt-12 text-center">
@@ -197,6 +217,6 @@ export default function SearchScreen() {
           </>
         )}
       </ScrollView>
-    </>
+    </View>
   );
 }

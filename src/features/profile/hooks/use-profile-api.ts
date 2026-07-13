@@ -5,6 +5,7 @@ export type AuthenticatedProfile = {
   fullName: string;
   email: string;
   avatarUrl?: string;
+  pix?: string;
   role?: string;
 };
 
@@ -50,10 +51,20 @@ function parsePatchError(err: unknown): string {
 export async function updateAuthProfile(payload: {
   fullName: string;
   avatarUrl?: string;
+  pix?: string;
 }): Promise<void> {
   try {
     await api.patch("/auth/profile", payload, { skipErrorAlert: true });
   } catch (err) {
+    throw new Error(parsePatchError(err));
+  }
+}
+
+export async function deleteMyAccount(): Promise<void> {
+  try {
+    await api.delete("/auth/account", { skipErrorAlert: true });
+  } catch (err) {
+    // Surface the server message (e.g. "Exclua ou transfira seus grupos…").
     throw new Error(parsePatchError(err));
   }
 }

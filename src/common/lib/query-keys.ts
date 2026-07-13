@@ -11,4 +11,11 @@ export const queryKeys = {
       ["groups", groupId, "categories"] as const,
   },
   users: () => ["users"] as const,
+  notifications: {
+    all: () => ["notifications"] as const,
+    unreadCount: () => ["notifications", "unread-count"] as const,
+  },
+  reminders: {
+    status: (toUserId: string) => ["reminders", "status", toUserId] as const,
+  },
 };

@@ -7,6 +7,12 @@ export const loginInputSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
+export const forgotPasswordInputSchema = z.object({
+  email: z.string().min(1, "Obrigatório").email("Email inválido"),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordInputSchema>;
+
 const passwordFieldSchema = z
   .string()
   .min(8, "Senha deve ter no mínimo 8 caracteres")
@@ -46,3 +52,16 @@ export const resetPasswordFormSchema = z
   });
 
 export type ResetPasswordFormInput = z.infer<typeof resetPasswordFormSchema>;
+
+export const changePasswordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Informe sua senha atual"),
+    password: passwordFieldSchema,
+    confirmPassword: z.string().min(1, "Confirme a senha"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export type ChangePasswordFormInput = z.infer<typeof changePasswordFormSchema>;

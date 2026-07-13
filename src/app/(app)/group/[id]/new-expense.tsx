@@ -1,11 +1,13 @@
 import { StepProgressRing } from "@/components/step-progress-ring";
 import { Card } from "@/components/ui/card";
 import {
+  FormDatePicker,
   FormError,
   FormField,
   FormInput,
   useZodForm,
 } from "@/components/ui/form";
+import { formatDateForInput, parseDateInputToIso } from "@/common/utils/date";
 import { ReceiptField } from "@/components/ui/form/receipt-field";
 import { Text } from "@/components/ui/text";
 import { useCategories } from "@/features/categories/hooks/use-categories";
@@ -89,6 +91,8 @@ const schema = z.object({
   participantAmounts: z.record(z.string(), z.string()),
   /** Local `file://` URI of an optional receipt image; empty when none. */
   receiptImageUrl: z.string(),
+  /** Expense date as a dd/mm/aaaa display string; defaults to today. */
+  date: z.string().min(1, "Informe uma data"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -109,6 +113,12 @@ export default function NewExpenseScreen() {
   const { members } = useGroupMembers(groupId);
   const { createExpense } = useExpensesMutations();
 
+  // Members leaving the group can't be added to new expenses.
+  const selectableMembers = useMemo(
+    () => members.filter((m) => m.membershipStatus !== "LEAVING"),
+    [members],
+  );
+
   const {
     control,
     trigger,
@@ -127,6 +137,7 @@ export default function NewExpenseScreen() {
       participantUserIds: [],
       participantAmounts: {},
       receiptImageUrl: "",
+      date: formatDateForInput(new Date()),
     },
   });
 
@@ -143,15 +154,18 @@ export default function NewExpenseScreen() {
     }
   }, [categories, categoryId, setValue]);
 
-  // Default-select all members once loaded.
+  // Default-select all selectable members once loaded.
   useEffect(() => {
-    if (members.length > 0 && getValues("participantUserIds").length === 0) {
+    if (
+      selectableMembers.length > 0 &&
+      getValues("participantUserIds").length === 0
+    ) {
       setValue(
         "participantUserIds",
-        members.map((m) => m._id),
+        selectableMembers.map((m) => m._id),
       );
     }
-  }, [members, getValues, setValue]);
+  }, [selectableMembers, getValues, setValue]);
 
   const userName = useMemo(() => {
     const map = new Map<string, string>();
@@ -213,6 +227,7 @@ export default function NewExpenseScreen() {
         totalAmount: parseAmount(values.amount),
         participantUserIds: values.participantUserIds,
         participantAmounts: amounts,
+        date: parseDateInputToIso(values.date),
         receiptImageUrl: values.receiptImageUrl?.trim()
           ? values.receiptImageUrl.trim()
           : undefined,
@@ -297,6 +312,13 @@ export default function NewExpenseScreen() {
                     error={errors.categoryId}
                     groupId={groupId!}
                   />
+                  <FormDatePicker
+                    control={control}
+                    name="date"
+                    label="Data"
+                    error={errors.date}
+                    maximumDate={new Date()}
+                  />
                 </View>
               ) : null}
 
@@ -320,7 +342,7 @@ export default function NewExpenseScreen() {
                       <Text className="text-foreground mb-2 text-sm font-medium">
                         Participantes
                       </Text>
-                      {members.map((m) => {
+                      {selectableMembers.map((m) => {
                         const active = value.includes(m._id);
                         return (
                           <Pressable

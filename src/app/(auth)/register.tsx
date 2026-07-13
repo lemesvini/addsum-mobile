@@ -14,13 +14,7 @@ import { Redirect, useRouter, type Href } from "expo-router";
 import { User, Mail, KeyRound } from "lucide-react-native";
 import { Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 
 export default function RegisterScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -66,10 +60,10 @@ export default function RegisterScreen() {
   });
 
   return (
-    <View className="flex-1 items-center justify-center p-6">
+    <View className="bg-background flex-1 items-center justify-center p-6">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        className="w-full justify-center"
       >
         <Text className="text-foreground text-3xl font-extrabold tracking-tight">
           Criar conta

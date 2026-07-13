@@ -11,6 +11,7 @@ import {
 } from "@/features/profile/hooks/use-profile-api";
 import { uploadLocalAvatarUrl } from "@/common/api/media-upload";
 import { useAppearance } from "@/hooks/use-appearance";
+import { useAndroidKeyboardScroll } from "@/hooks/use-android-keyboard-scroll";
 import { useTheme } from "@/hooks/use-theme";
 import { router } from "expo-router";
 import { X } from "lucide-react-native";
@@ -30,6 +31,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function EditProfileModal() {
   const { isDark } = useAppearance();
   const theme = useTheme();
+  const { scrollViewRef, keyboardOverlayHeight, handleContentSizeChange } =
+    useAndroidKeyboardScroll();
   const iconColor = isDark ? "white" : "black";
   const initialAvatarUrlRef = useRef<string>("");
 
@@ -42,7 +45,7 @@ export default function EditProfileModal() {
   const { control, handleSubmit, formState, reset, register } =
     useZodForm<ProfileEditSchema>({
       schema: profileEditSchema,
-      defaultValues: { fullName: "", avatarUrl: "" },
+      defaultValues: { fullName: "", avatarUrl: "", pix: "" },
     });
 
   useEffect(() => {
@@ -56,7 +59,11 @@ export default function EditProfileModal() {
         const av = user.avatarUrl?.trim() ?? "";
         initialAvatarUrlRef.current = av;
         setEmail(user.email ?? "");
-        reset({ fullName: user.fullName ?? "", avatarUrl: av });
+        reset({
+          fullName: user.fullName ?? "",
+          avatarUrl: av,
+          pix: user.pix ?? "",
+        });
       } catch (e) {
         if (!cancelled) {
           setLoadError(
@@ -81,8 +88,9 @@ export default function EditProfileModal() {
       const trimmedAvatar = (data.avatarUrl ?? "").trim();
       const hadInitialAvatar = Boolean(initialAvatarUrlRef.current.trim());
 
-      const payload: { fullName: string; avatarUrl?: string } = {
+      const payload: { fullName: string; avatarUrl?: string; pix?: string } = {
         fullName: data.fullName.trim(),
+        pix: (data.pix ?? "").trim(),
       };
 
       if (!trimmedAvatar) {
@@ -145,7 +153,7 @@ export default function EditProfileModal() {
     <SafeAreaView className="flex-1 bg-background pt-4" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "android" ? "height" : undefined}
       >
         <View className="flex-row items-center px-4 pb-2 pt-4">
           <View className="flex-1 items-center">
@@ -165,10 +173,15 @@ export default function EditProfileModal() {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           className="flex-1"
           contentContainerClassName="gap-5 px-4 pb-4"
+          contentContainerStyle={{ paddingBottom: keyboardOverlayHeight }}
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+          keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          onContentSizeChange={handleContentSizeChange}
         >
           <ProfileForm
             control={control}

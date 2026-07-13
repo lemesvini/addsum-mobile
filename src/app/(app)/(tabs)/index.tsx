@@ -6,13 +6,15 @@ import {
   type DebtItem,
 } from "@/features/expenses/hooks/use-debt-summaries";
 import { useAllMemberNames } from "@/features/groups/hooks/use-all-member-names";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useProfile } from "@/features/profile/hooks/use-profile";
-import { User, Wallet } from "lucide-react-native";
+import { useUnreadNotificationsCount } from "@/features/notifications/hooks/use-notifications";
+import { Bell, User, Wallet } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { router, type Href } from "expo-router";
 import { Image } from "expo-image";
 import { useTheme } from "@/hooks/use-theme";
+import { useState } from "react";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -61,41 +63,87 @@ function DebtRow({
 
 export default function HomeScreen() {
   const topPadding = useTabScreenTopPadding();
-  const { iOwe, owedToMe, totalIOwe, totalOwedToMe, net } = useDebtSummaries();
+  const { iOwe, owedToMe, totalIOwe, totalOwedToMe, net, refetch } =
+    useDebtSummaries();
   const { profile } = useProfile();
   const nameById = useAllMemberNames();
+  const unread = useUnreadNotificationsCount();
   const avatarUrl = profile?.avatarUrl?.trim() ?? "";
   const theme = useTheme();
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const userName = (id: string) => nameById.get(id) ?? "Alguém";
 
   return (
     <ScrollView
       className="bg-background flex-1"
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ ...topPadding, paddingBottom: 32 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
     >
       <View className="px-5">
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-foreground text-3xl font-extrabold tracking-tight">
             Oi, {profile?.fullName.split(" ")[0] ?? "Usuário"}
           </Text>
-          <Pressable
-            className="items-center justify-center overflow-hidden rounded-full bg-muted"
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.push("(modals)/profile-modal" as Href);
-            }}
-          >
-            {avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={{ width: 44, height: 44 }}
-                contentFit="cover"
-              />
-            ) : (
-              <User size={18} color="#ffffff" />
-            )}
-          </Pressable>
+          <View className="flex-row items-center gap-3">
+            <Pressable
+              className="items-center justify-center rounded-full bg-muted"
+              style={{ width: 44, height: 44 }}
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push("/notifications" as Href);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Notificações"
+            >
+              <Bell size={20} color={theme.foreground} />
+              {unread > 0 ? (
+                <View
+                  className="absolute h-2.5 w-2.5 rounded-full"
+                  style={{
+                    top: 9,
+                    right: 9,
+                    backgroundColor: theme.destructive,
+                  }}
+                />
+              ) : null}
+            </Pressable>
+            <Pressable
+              className="items-center justify-center overflow-hidden rounded-full bg-muted"
+              style={{ width: 44, height: 44 }}
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push("(modals)/profile-modal" as Href);
+              }}
+            >
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={{ width: 44, height: 44 }}
+                  contentFit="cover"
+                />
+              ) : (
+                <User size={18} color="#ffffff" />
+              )}
+            </Pressable>
+          </View>
         </View>
 
         {/* <View className="mb-4 flex-row gap-4">

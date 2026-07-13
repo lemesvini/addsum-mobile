@@ -11,6 +11,7 @@ import {
   KeyRound,
   LogOut,
   Shield,
+  Trash2,
   User,
   X,
   type LucideIcon,
@@ -186,6 +187,12 @@ export default function ProfileModal() {
             icon={LogOut}
             label="Sair"
             onPress={onLogout}
+            destructive
+          />
+          <Row
+            icon={Trash2}
+            label="Excluir conta"
+            onPress={() => router.push("(modals)/delete-account" as Href)}
             destructive
             showDivider={false}
           />

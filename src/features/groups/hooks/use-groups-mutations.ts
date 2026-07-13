@@ -5,6 +5,7 @@ import {
   updateGroup as apiUpdateGroup,
   joinGroup as apiJoinGroup,
   deleteGroup as apiDeleteGroup,
+  leaveGroup as apiLeaveGroup,
   type CreateGroupInput,
   type UpdateGroupInput,
 } from "../api/groups-api";
@@ -82,6 +83,14 @@ export function useGroupsMutations() {
     },
   });
 
+  const leaveMutation = useMutation({
+    mutationFn: (groupId: string) => apiLeaveGroup(groupId),
+    onSuccess: (_result, groupId) => {
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.members(groupId) });
+    },
+  });
+
   const createGroup = useCallback(
     async (input: CreateGroupHookInput): Promise<string> => {
       const group = await createMutation.mutateAsync(input);
@@ -111,5 +120,12 @@ export function useGroupsMutations() {
     [deleteMutation],
   );
 
-  return { createGroup, updateGroup, joinGroup, deleteGroup };
+  const leaveGroup = useCallback(
+    async (groupId: string): Promise<{ status: "LEFT" | "LEAVING" }> => {
+      return leaveMutation.mutateAsync(groupId);
+    },
+    [leaveMutation],
+  );
+
+  return { createGroup, updateGroup, joinGroup, deleteGroup, leaveGroup };
 }
