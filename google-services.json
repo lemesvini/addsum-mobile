@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:402553403474:android:970b46dc42c6d70f04878b",
+        "mobilesdk_app_id": "1:402553403474:android:0cc9a85016734d7604878b",
         "android_client_info": {
-          "package_name": "com.pedrohhcunha.addsummobile"
+          "package_name": "com.pedrohhcunha.addsum"
         }
       },
       "oauth_client": [],

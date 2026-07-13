@@ -2,7 +2,7 @@
   "expo": {
     "name": "Addsum",
     "slug": "addsum-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/epicora.png",
     "scheme": "addsummobile",
@@ -23,7 +23,7 @@
         "backgroundColor": "#000000"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pedrohhcunha.addsummobile",
+      "package": "com.pedrohhcunha.addsum",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
