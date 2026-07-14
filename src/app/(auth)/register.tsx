@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { AuthTextField } from "@/features/auth/components/auth-text-field";
 import { useRegister } from "@/features/auth/hooks/use-register";
@@ -9,7 +8,6 @@ import {
   type RegisterInput,
 } from "@/features/auth/api/auth-schemas";
 import { useZodForm } from "@/components/ui/form";
-import { useTheme } from "@/hooks/use-theme";
 import { Redirect, useRouter, type Href } from "expo-router";
 import { User, Mail, KeyRound } from "lucide-react-native";
 import { Controller } from "react-hook-form";
@@ -20,7 +18,6 @@ export default function RegisterScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const { mutate, isLoading, error } = useRegister();
   const router = useRouter();
-  const theme = useTheme();
   const [postAuthHref, setPostAuthHref] = useState<Href | null>(null);
 
   const { control, handleSubmit, formState } = useZodForm<RegisterInput>({
@@ -134,7 +131,7 @@ export default function RegisterScreen() {
           )}
         />
 
-        <View className="mb-4 mt-1 flex-row">
+        <View className="mb-5 mt-1 flex-row">
           <Text className="text-muted-foreground text-sm">Já tem conta? </Text>
           <Pressable onPress={() => router.replace("/(auth)/sign-in" as Href)}>
             <Text className="text-primary text-sm font-semibold">Entrar</Text>
@@ -148,9 +145,11 @@ export default function RegisterScreen() {
         <Pressable
           disabled={isLoading}
           onPress={onSubmit}
-          className="rounded-full bg-primary px-4 py-3 items-center"
+          className={`bg-primary h-14 items-center justify-center rounded-2xl active:opacity-90 ${
+            isLoading ? "opacity-60" : ""
+          }`}
         >
-          <Text className="text-primary-foreground font-semibold">
+          <Text className="text-primary-foreground text-base font-bold">
             {isLoading ? "Criando..." : "Criar conta"}
           </Text>
         </Pressable>

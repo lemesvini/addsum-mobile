@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { AuthTextField } from "@/features/auth/components/auth-text-field";
 import { useLogin } from "@/features/auth/hooks/use-login";
@@ -9,7 +8,6 @@ import {
   type LoginInput,
 } from "@/features/auth/api/auth-schemas";
 import { useZodForm } from "@/components/ui/form";
-import { useTheme } from "@/hooks/use-theme";
 import { Redirect, useRouter, type Href } from "expo-router";
 import { Mail, KeyRound } from "lucide-react-native";
 import { Controller } from "react-hook-form";
@@ -20,7 +18,6 @@ export default function SignInScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const { mutate, isLoading, error } = useLogin();
   const router = useRouter();
-  const theme = useTheme();
   const [postAuthHref, setPostAuthHref] = useState<Href | null>(null);
 
   const { control, handleSubmit, formState } = useZodForm<LoginInput>({
@@ -42,17 +39,13 @@ export default function SignInScreen() {
     return <Redirect href={postAuthHref} />;
   }
 
-  const onSubmit = handleSubmit(
-    async (data) => {
-      console.log("[sign-in] onValid", data);
-      try {
-        await mutate({ email: data.email.trim(), password: data.password });
-      } catch {}
-    },
-    (errors) => {
-      console.log("[sign-in] onInvalid", JSON.stringify(errors));
-    },
-  );
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      await mutate({ email: data.email.trim(), password: data.password });
+    } catch {
+      // surfaced via `error`
+    }
+  });
 
   return (
     <View className="bg-background flex-1 items-center justify-center p-6">

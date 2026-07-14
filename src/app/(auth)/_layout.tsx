@@ -18,12 +18,24 @@ const AUTH_SHEET_OPTIONS =
       }
     : undefined;
 
+// Register has more fields than the other sheets, so its initial detent is
+// taller to roughly match its content height (still draggable up to full).
+const REGISTER_SHEET_OPTIONS =
+  Platform.OS === "ios"
+    ? {
+        presentation: "formSheet" as const,
+        sheetGrabberVisible: true,
+        sheetAllowedDetents: [0.65, 1],
+        contentStyle: { backgroundColor: "transparent" },
+      }
+    : undefined;
+
 export default function AuthLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="welcome" />
       <Stack.Screen name="sign-in" options={AUTH_SHEET_OPTIONS} />
-      <Stack.Screen name="register" options={AUTH_SHEET_OPTIONS} />
+      <Stack.Screen name="register" options={REGISTER_SHEET_OPTIONS} />
       <Stack.Screen name="forgot-password" options={AUTH_SHEET_OPTIONS} />
       <Stack.Screen name="reset-password" options={AUTH_SHEET_OPTIONS} />
     </Stack>
