@@ -19,7 +19,10 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -37,6 +40,8 @@ export default function PayFriendScreen() {
   const profiles = useAllMemberProfiles();
   const { groups } = useGroups();
   const { declarePayment } = useExpensesMutations();
+  const insets = useSafeAreaInsets();
+  const footerPaddingBottom = insets.bottom + 16;
 
   const profile = profiles.get(userId ?? "");
   const name = profile?.fullName ?? "Amigo";
@@ -212,7 +217,10 @@ export default function PayFriendScreen() {
 
       {/* Sticky footer: Pix + total + declare */}
       {items.length > 0 ? (
-        <View className="border-border bg-background absolute inset-x-0 bottom-0 gap-3 border-t px-4 pb-8 pt-3">
+        <View
+          className="border-border bg-background absolute inset-x-0 bottom-0 gap-3 border-t px-4 pt-3"
+          style={{ paddingBottom: footerPaddingBottom }}
+        >
           {pix ? (
             <View className="gap-2">
               <CopyableField

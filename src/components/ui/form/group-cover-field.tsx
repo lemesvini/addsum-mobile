@@ -1,4 +1,5 @@
 import { uploadApi } from "@/common/api/upload";
+import { normalizeToJpeg } from "@/common/utils/image";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/use-theme";
 import { Image } from "expo-image";
@@ -64,16 +65,6 @@ export function GroupCoverField({
       if (result.canceled || !result.assets[0]) return;
 
       const asset = result.assets[0];
-      const mimeType = asset.mimeType?.toLowerCase();
-      if (
-        mimeType &&
-        mimeType !== "image/jpeg" &&
-        mimeType !== "image/jpg" &&
-        mimeType !== "image/png"
-      ) {
-        Alert.alert("Formato inválido", "Use apenas imagens JPEG ou PNG.");
-        return;
-      }
 
       if (asset.fileSize) {
         const validation = uploadApi.validateImage(asset.fileSize);
@@ -86,7 +77,10 @@ export function GroupCoverField({
         }
       }
 
-      onChange(persistPickedImage(asset.uri));
+      // Always re-encode to JPEG: iOS photo-library assets can be HEIC,
+      // which renders fine on iOS but not on Android.
+      const normalizedUri = await normalizeToJpeg(asset.uri);
+      onChange(persistPickedImage(normalizedUri));
     } catch (pickError) {
       const message =
         pickError instanceof Error

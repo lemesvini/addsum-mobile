@@ -18,7 +18,10 @@ import * as Haptics from "expo-haptics";
 import { Bell, User } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -187,6 +190,8 @@ function FooterAction({
     segment === "owedToMe" ? userId : undefined,
   );
   const { send, isLoading } = useSendReminder();
+  const insets = useSafeAreaInsets();
+  const footerPaddingBottom = insets.bottom + 16;
 
   if (segment === "owedToMe") {
     if (!hasOwedToMe) return null;
@@ -208,7 +213,10 @@ function FooterAction({
     };
 
     return (
-      <View className="border-border bg-background absolute inset-x-0 bottom-0 border-t px-4 pb-8 pt-3">
+      <View
+        className="border-border bg-background absolute inset-x-0 bottom-0 border-t px-4 pt-3"
+        style={{ paddingBottom: footerPaddingBottom }}
+      >
         <Pressable
           onPress={onPress}
           disabled={disabled}
@@ -232,7 +240,10 @@ function FooterAction({
   // segment === "iOwe"
   if (!hasIOwe) return null;
   return (
-    <View className="border-border bg-background absolute inset-x-0 bottom-0 border-t px-4 pb-8 pt-3">
+    <View
+      className="border-border bg-background absolute inset-x-0 bottom-0 border-t px-4 pt-3"
+      style={{ paddingBottom: footerPaddingBottom }}
+    >
       <Pressable
         onPress={() => {
           Haptics.selectionAsync();

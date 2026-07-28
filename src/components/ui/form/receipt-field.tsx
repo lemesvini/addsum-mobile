@@ -1,4 +1,5 @@
 import { uploadApi } from "@/common/api/upload";
+import { normalizeToJpeg } from "@/common/utils/image";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/use-theme";
 import { Image } from "expo-image";
@@ -33,19 +34,8 @@ function persistPickedImage(uri: string): string {
   }
 }
 
-/** Validates the picked asset's mime type and size; returns true if acceptable. */
+/** Validates the picked asset's size; returns true if acceptable. */
 function validateAsset(asset: ImagePicker.ImagePickerAsset): boolean {
-  const mimeType = asset.mimeType?.toLowerCase();
-  if (
-    mimeType &&
-    mimeType !== "image/jpeg" &&
-    mimeType !== "image/jpg" &&
-    mimeType !== "image/png"
-  ) {
-    Alert.alert("Formato inválido", "Use apenas imagens JPEG ou PNG.");
-    return false;
-  }
-
   if (asset.fileSize) {
     const validation = uploadApi.validateImage(asset.fileSize);
     if (!validation.isValid) {
@@ -92,7 +82,10 @@ export function ReceiptField({
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     if (!validateAsset(asset)) return;
-    onChange(persistPickedImage(asset.uri));
+    // Always re-encode to JPEG: iOS photo-library assets can be HEIC, which
+    // renders fine on iOS but not on Android.
+    const normalizedUri = await normalizeToJpeg(asset.uri);
+    onChange(persistPickedImage(normalizedUri));
   };
 
   const takePhoto = async () => {
@@ -114,7 +107,9 @@ export function ReceiptField({
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     if (!validateAsset(asset)) return;
-    onChange(persistPickedImage(asset.uri));
+    // Camera captures can also be HEIC on iOS depending on device settings.
+    const normalizedUri = await normalizeToJpeg(asset.uri);
+    onChange(persistPickedImage(normalizedUri));
   };
 
   const runPicker = async (pick: () => Promise<void>) => {
