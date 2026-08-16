@@ -1,4 +1,5 @@
 import { Text } from "@/components/ui/text";
+import { env } from "@/common/config/env";
 import { cn } from "@/lib/utils";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { useLogout } from "@/features/auth/hooks/use-logout";
@@ -25,10 +26,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-
-// Endereços públicos — substituir pelos links definitivos quando existirem.
-const PRIVACY_URL = "https://addsum.app/privacidade";
-const TERMS_URL = "https://addsum.app/termos";
 
 function Row({
   icon: Icon,
@@ -162,12 +159,12 @@ export default function ProfileModal() {
           <Row
             icon={Shield}
             label="Política de Privacidade"
-            onPress={() => openUrl(PRIVACY_URL)}
+            onPress={() => openUrl(env.PRIVACY_POLICY_URL)}
           />
           <Row
             icon={FileText}
             label="Termos de Uso"
-            onPress={() => openUrl(TERMS_URL)}
+            onPress={() => openUrl(env.TERMS_OF_USE_URL)}
             showDivider={false}
           />
         </View>

@@ -3,6 +3,7 @@ import { AuthTextField } from "@/features/auth/components/auth-text-field";
 import { useRegister } from "@/features/auth/hooks/use-register";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { getPostAuthRoute } from "@/features/onboarding/onboarding-store";
+import { env } from "@/common/config/env";
 import {
   registerInputSchema,
   type RegisterInput,
@@ -12,7 +13,14 @@ import { Redirect, useRouter, type Href } from "expo-router";
 import { User, Mail, KeyRound } from "lucide-react-native";
 import { Controller } from "react-hook-form";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
 
 export default function RegisterScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -43,6 +51,12 @@ export default function RegisterScreen() {
     if (!postAuthHref) return null;
     return <Redirect href={postAuthHref} />;
   }
+
+  const openUrl = (url: string) => {
+    void Linking.openURL(url).catch(() => {
+      Alert.alert("Ops", "Não foi possível abrir o link.");
+    });
+  };
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -137,6 +151,24 @@ export default function RegisterScreen() {
             <Text className="text-primary text-sm font-semibold">Entrar</Text>
           </Pressable>
         </View>
+
+        <Text className="text-muted-foreground mb-4 text-xs leading-5">
+          Ao criar uma conta, você concorda com nossos{" "}
+          <Text
+            className="text-primary text-xs font-semibold"
+            onPress={() => openUrl(env.TERMS_OF_USE_URL)}
+          >
+            Termos de Uso
+          </Text>{" "}
+          e nossa{" "}
+          <Text
+            className="text-primary text-xs font-semibold"
+            onPress={() => openUrl(env.PRIVACY_POLICY_URL)}
+          >
+            Política de Privacidade
+          </Text>
+          .
+        </Text>
 
         {error ? (
           <Text className="text-destructive mb-3 text-sm">{error}</Text>
