@@ -3,6 +3,7 @@ import { GroupCoverField } from "@/components/ui/form/group-cover-field";
 import { Text } from "@/components/ui/text";
 import { AuthTextField } from "@/features/auth/components/auth-text-field";
 import { useGroupsMutations } from "@/features/groups/hooks/use-groups-mutations";
+import { useTheme } from "@/hooks/use-theme";
 import { router, type Href } from "expo-router";
 import { X } from "lucide-react-native";
 import { useState } from "react";
@@ -11,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CreateGroupModal() {
   const { createGroup } = useGroupsMutations();
+  const theme = useTheme();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -44,8 +46,14 @@ export default function CreateGroupModal() {
     <SafeAreaView className="bg-background flex-1">
       <View className="flex-row items-center justify-between px-5 py-3">
         <Text className="text-foreground text-xl font-bold">Novo grupo</Text>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <X size={24} color="#111827" />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={10}
+          className="bg-muted h-9 w-9 items-center justify-center rounded-full"
+          accessibilityRole="button"
+          accessibilityLabel="Fechar"
+        >
+          <X size={18} color={theme.foreground} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 

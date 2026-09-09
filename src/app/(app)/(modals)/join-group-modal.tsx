@@ -1,29 +1,61 @@
-import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { AuthTextField } from "@/features/auth/components/auth-text-field";
 import { useGroupsMutations } from "@/features/groups/hooks/use-groups-mutations";
+import { useTheme } from "@/hooks/use-theme";
+import * as Clipboard from "expo-clipboard";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { X } from "lucide-react-native";
+import { ClipboardPaste, Ticket, X } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+const MIN_CODE_LENGTH = 4;
 
 export default function JoinGroupModal() {
   const { joinGroup } = useGroupsMutations();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [code, setCode] = useState("");
+  const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const trimmed = code.trim();
+  const canSubmit = trimmed.length >= MIN_CODE_LENGTH && !busy;
+
+  const onChangeCode = (value: string) => {
+    setCode(value.toUpperCase().replace(/\s/g, ""));
+    if (error) setError(null);
+  };
+
+  const onPaste = async () => {
+    const text = (await Clipboard.getStringAsync()).trim();
+    if (!text) return;
+    Haptics.selectionAsync();
+    onChangeCode(text);
+  };
+
   const onJoin = async () => {
-    if (code.trim().length < 4) {
+    if (trimmed.length < MIN_CODE_LENGTH) {
       setError("Código inválido");
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      await joinGroup(code.trim());
+      await joinGroup(trimmed);
       router.back();
     } catch (e: any) {
       setError(e?.message ?? "Não foi possível entrar no grupo");
@@ -33,40 +65,113 @@ export default function JoinGroupModal() {
   };
 
   return (
-    <SafeAreaView className="bg-background flex-1">
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <Text className="text-foreground text-xl font-bold">
-          Entrar em um grupo
-        </Text>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <X size={24} color="#111827" />
+    <SafeAreaView className="bg-background flex-1" edges={["top"]}>
+      <View className="flex-row items-center justify-end px-5 py-3">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={10}
+          className="bg-muted h-9 w-9 items-center justify-center rounded-full"
+          accessibilityRole="button"
+          accessibilityLabel="Fechar"
+        >
+          <X size={18} color={theme.foreground} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        className="px-5"
-        contentContainerStyle={{ paddingBottom: 40 }}
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <AuthTextField
-          label="Código de convite"
-          placeholder="Ex: ABC123"
-          autoCapitalize="characters"
-          value={code}
-          onChangeText={setCode}
-        />
-        {error ? (
-          <Text className="text-destructive mb-2 text-sm">{error}</Text>
-        ) : null}
-        <Pressable
-          className="bg-primary py-3 rounded-lg items-center rounded-full"
-          disabled={busy}
-          onPress={onJoin}
-        >
-          <Text className="text-primary-foreground font-semibold">
-            {busy ? "Entrando..." : "Entrar"}
+        <View className="flex-1 items-center px-6 pt-6">
+          <View
+            className="bg-muted items-center justify-center rounded-3xl"
+            style={{ width: 80, height: 80 }}
+          >
+            <Ticket size={32} color={theme.primary} />
+          </View>
+
+          <Text className="text-foreground mt-6 text-center text-3xl font-extrabold tracking-tight">
+            Entrar em um grupo
           </Text>
-        </Pressable>
-      </ScrollView>
+          <Text className="text-muted-foreground mt-2 max-w-xs text-center text-base leading-6">
+            Peça o código de convite para alguém que já faz parte do grupo.
+          </Text>
+
+          <View
+            className="bg-card mt-8 w-full rounded-2xl"
+            style={{
+              borderWidth: focused ? 1.5 : 1,
+              borderColor: focused ? theme.primary : theme.border,
+            }}
+          >
+            <TextInput
+              value={code}
+              onChangeText={onChangeCode}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="ABCD1234"
+              placeholderTextColor={theme.mutedForeground}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoComplete="off"
+              maxLength={12}
+              returnKeyType="go"
+              onSubmitEditing={() => canSubmit && onJoin()}
+              style={{
+                height: 64,
+                textAlign: "center",
+                fontSize: 24,
+                fontWeight: "700",
+                letterSpacing: 6,
+                color: theme.foreground,
+              }}
+            />
+          </View>
+
+          <Pressable
+            onPress={onPaste}
+            className="mt-3 flex-row items-center gap-2 rounded-full px-4 py-2 active:opacity-70"
+            accessibilityRole="button"
+            accessibilityLabel="Colar código"
+          >
+            <ClipboardPaste size={16} color={theme.mutedForeground} />
+            <Text className="text-muted-foreground text-sm font-medium">
+              Colar código
+            </Text>
+          </Pressable>
+
+          {error ? (
+            <Text className="text-destructive mt-4 text-center text-sm">
+              {error}
+            </Text>
+          ) : null}
+        </View>
+
+        <View
+          className="px-6 pt-3"
+          style={{ paddingBottom: insets.bottom + 16 }}
+        >
+          <Pressable
+            disabled={!canSubmit}
+            onPress={onJoin}
+            className={`h-14 items-center justify-center rounded-2xl ${
+              canSubmit ? "bg-primary active:opacity-90" : "bg-muted"
+            }`}
+          >
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text
+                className={`text-base font-bold ${
+                  canSubmit ? "text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Entrar
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
