@@ -64,6 +64,7 @@ export default function RegisterScreen() {
         fullName: data.fullName.trim(),
         email: data.email.trim(),
         password: data.password,
+        confirmPassword: data.confirmPassword,
       });
     } catch {
       // surfaced via `error`
