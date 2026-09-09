@@ -9,6 +9,7 @@ import { X } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
 export default function CreateGroupModal() {
   const { createGroup } = useGroupsMutations();
@@ -36,7 +37,7 @@ export default function CreateGroupModal() {
       router.back();
       router.push(`/group/${id}` as Href);
     } catch (e: any) {
-      setError(e?.message ?? "Não foi possível criar o grupo");
+      setError(getApiErrorMessage(e, "Não foi possível criar o grupo"));
     } finally {
       setBusy(false);
     }

@@ -49,6 +49,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { z } from "zod";
 import * as Haptics from "expo-haptics";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -234,7 +235,7 @@ export default function NewExpenseScreen() {
       });
       router.back();
     } catch (e: any) {
-      setSubmitError(e?.message ?? "Não foi possível criar a despesa");
+      setSubmitError(getApiErrorMessage(e, "Não foi possível criar a despesa"));
     } finally {
       setBusy(false);
     }
@@ -642,7 +643,7 @@ function CategoryField({
               onChange(created._id);
               reset();
             } catch (e: any) {
-              setAddError(e?.message ?? "Não foi possível criar a categoria");
+              setAddError(getApiErrorMessage(e, "Não foi possível criar a categoria"));
             } finally {
               setBusy(false);
             }

@@ -19,8 +19,12 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
-const MIN_CODE_LENGTH = 4;
+// Invite codes are 8 hex chars (`generateInviteCode` on the API); a few
+// legacy groups still have 6-char codes, so both are accepted.
+const MIN_CODE_LENGTH = 6;
+const MAX_CODE_LENGTH = 8;
 
 export default function JoinGroupModal() {
   const { joinGroup } = useGroupsMutations();
@@ -58,7 +62,7 @@ export default function JoinGroupModal() {
       await joinGroup(trimmed);
       router.back();
     } catch (e: any) {
-      setError(e?.message ?? "Não foi possível entrar no grupo");
+      setError(getApiErrorMessage(e, "Não foi possível entrar no grupo"));
     } finally {
       setBusy(false);
     }
@@ -114,7 +118,7 @@ export default function JoinGroupModal() {
               autoCapitalize="characters"
               autoCorrect={false}
               autoComplete="off"
-              maxLength={12}
+              maxLength={MAX_CODE_LENGTH}
               returnKeyType="go"
               onSubmitEditing={() => canSubmit && onJoin()}
               style={{

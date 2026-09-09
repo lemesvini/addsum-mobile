@@ -23,6 +23,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -108,7 +109,7 @@ export default function PayFriendScreen() {
       }
       router.back();
     } catch (e: any) {
-      setError(e?.message ?? "Não foi possível marcar como pago.");
+      setError(getApiErrorMessage(e, "Não foi possível marcar como pago."));
     } finally {
       setBusy(false);
     }

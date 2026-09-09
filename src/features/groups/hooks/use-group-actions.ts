@@ -4,6 +4,7 @@ import { router, type Href } from "expo-router";
 import { useAuthUser } from "@/features/auth/auth-store";
 import { useGroupsMutations } from "@/features/groups/hooks/use-groups-mutations";
 import type { Group } from "@/features/groups/api/groups-api";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
 type UseGroupActionsOptions = {
   /** Called when the current user is no longer in the group (deleted, or leave finalized). */
@@ -45,7 +46,7 @@ export function useGroupActions(
             } catch (e: any) {
               Alert.alert(
                 "Erro",
-                e?.message ?? "Não foi possível excluir o grupo.",
+                getApiErrorMessage(e, "Não foi possível excluir o grupo."),
               );
             }
           },
@@ -75,7 +76,7 @@ export function useGroupActions(
           } catch (e: any) {
             Alert.alert(
               "Erro",
-              e?.message ?? "Não foi possível sair do grupo.",
+              getApiErrorMessage(e, "Não foi possível sair do grupo."),
             );
           }
         },

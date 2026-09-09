@@ -25,6 +25,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PieChart } from "react-native-gifted-charts";
 import type { ExpenseParticipant } from "@/features/expenses/api/expenses-api";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
 function formatBRL(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -132,7 +133,7 @@ export default function ExpenseDetailScreen() {
     try {
       await fn();
     } catch (e: any) {
-      setError(e?.message ?? "Não foi possível atualizar o pagamento");
+      setError(getApiErrorMessage(e, "Não foi possível atualizar o pagamento"));
     } finally {
       setBusyId(null);
     }
@@ -154,7 +155,7 @@ export default function ExpenseDetailScreen() {
             } catch (e: any) {
               Alert.alert(
                 "Erro",
-                e?.message ?? "Não foi possível excluir a despesa.",
+                getApiErrorMessage(e, "Não foi possível excluir a despesa."),
               );
             }
           },

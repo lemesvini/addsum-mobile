@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CloseButton from "@/components/close-button";
+import { getApiErrorMessage } from "@/common/api/api-error";
 
 export default function EditGroupModal() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,7 +54,7 @@ export default function EditGroupModal() {
       });
       router.back();
     } catch (e: any) {
-      setError(e?.message ?? "Não foi possível salvar o grupo");
+      setError(getApiErrorMessage(e, "Não foi possível salvar o grupo"));
     } finally {
       setBusy(false);
     }
